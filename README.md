@@ -1,1 +1,1 @@
-# hygiene-tracker
+# Hygiene Tracker
