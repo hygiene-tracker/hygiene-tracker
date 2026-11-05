@@ -1,4 +1,4 @@
-# Team Agreement: `<team name>`
+# Team Agreement: `The Cleanbusters`
 
 [Back to the Project 03 guide](README.md#the-team-agreement)
 
