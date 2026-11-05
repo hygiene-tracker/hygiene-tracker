@@ -32,3 +32,5 @@ Everyone on the team adds their name and GitHub username in the PR that commits 
 |-----------------------|--------------|
 | Jaime Serrano Acevedo | jai-serr-ace |
 | Leonardo Lopez        | leodebuss    |
+| Hugo Ruiz-Mireles     | Hugo-RM      |
+
