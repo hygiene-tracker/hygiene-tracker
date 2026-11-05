@@ -1,4 +1,4 @@
-# Team Agreement: `<team name>`
+# Team Agreement: `The Cleanbusters`
 
 [Back to the Project 03 guide](README.md#the-team-agreement)
 
@@ -28,6 +28,9 @@ The course deadline is the outer limit: PR open by **2:00 AM Thursday**, reviewe
 
 Everyone on the team adds their name and GitHub username in the PR that commits this file.
 
-| Name | GitHub |
-|---|---|
-| Jaime Serrano Acevedo | jai-serr-ace|
+| Name                  | GitHub       |
+|-----------------------|--------------|
+| Jaime Serrano Acevedo | jai-serr-ace |
+| Leonardo Lopez        | leodebuss    |
+| Hugo Ruiz-Mireles     | Hugo-RM      |
+
