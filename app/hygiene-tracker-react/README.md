@@ -25,6 +25,18 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
+## Google authentication setup
+
+The native Google Sign-In package is configured at app startup. No sign-in screen or route is
+included yet.
+
+Copy `.env.example` to `.env.local` and set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` to the **Web
+application** OAuth 2.0 client ID from Google Cloud Console. This is a client ID, not a client
+secret. Restart Expo after changing the environment file.
+
+The request helper in `src/lib/google-auth-api.ts` currently uses mock token and endpoint values.
+Replace those values when the backend is available; no screen calls this helper yet.
+
 ## Get a fresh project
 
 When you're ready, run:
