@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ExternalLink } from '@/components/external-link';
 import { GoogleAuthTest } from '@/components/google-auth-test';
+import { GithubAuthTest } from '@/components/github-auth-test';
+import { AuthConnectionTest } from '@/components/auth-connection-test';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Collapsible } from '@/components/ui/collapsible';
@@ -61,11 +63,27 @@ export default function TabTwoScreen() {
 
         <ThemedView style={styles.sectionsWrapper}>
           <ThemedView type="backgroundElement" style={styles.authCheck}>
+            <ThemedText type="subtitle">API connection check</ThemedText>
+            <ThemedText type="small">
+              Send a mock request to Spring Boot and display its HTTP response.
+            </ThemedText>
+            <AuthConnectionTest />
+          </ThemedView>
+
+          <ThemedView type="backgroundElement" style={styles.authCheck}>
             <ThemedText type="subtitle">Google token check</ThemedText>
             <ThemedText type="small">
               Sign in with Google to send an ID token to the Spring Boot API for validation.
             </ThemedText>
             <GoogleAuthTest />
+          </ThemedView>
+
+          <ThemedView type="backgroundElement" style={styles.authCheck}>
+            <ThemedText type="subtitle">GitHub sign-in check</ThemedText>
+            <ThemedText type="small">
+              Sign in with GitHub and return the validated profile to this app.
+            </ThemedText>
+            <GithubAuthTest />
           </ThemedView>
 
           <Collapsible title="File-based routing">

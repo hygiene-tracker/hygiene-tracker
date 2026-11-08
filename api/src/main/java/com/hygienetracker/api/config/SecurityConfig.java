@@ -20,12 +20,15 @@ public class SecurityConfig {
                     "/api/auth/github",
                     "/api/auth/github/login",
                     "/api/auth/github/callback",
+                    "/api/auth/github/result",
+                    "/api/auth/connection-test",
                     "/actuator/health",
                     "/actuator/health/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
-            .csrf(csrf -> csrf.ignoringRequestMatchers("/api/auth/google", "/api/auth/github"))
+            .csrf(csrf -> csrf.ignoringRequestMatchers(
+                "/api/auth/google", "/api/auth/github", "/api/auth/github/result"))
             .formLogin(form -> form.disable())
             .httpBasic(basic -> basic.disable());
 
