@@ -17,12 +17,15 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/health",
                     "/api/auth/google",
+                    "/api/auth/github",
+                    "/api/auth/github/login",
+                    "/api/auth/github/callback",
                     "/actuator/health",
                     "/actuator/health/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
-            .csrf(csrf -> csrf.ignoringRequestMatchers("/api/auth/google"))
+            .csrf(csrf -> csrf.ignoringRequestMatchers("/api/auth/google", "/api/auth/github"))
             .formLogin(form -> form.disable())
             .httpBasic(basic -> basic.disable());
 
