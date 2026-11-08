@@ -25,17 +25,32 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Google authentication setup
+## Check the Spring Boot API connection
 
-The native Google Sign-In package is configured at app startup. No sign-in screen or route is
-included yet.
+Start the API in another terminal (`cd api && sh ./gradlew bootRun`), then run this from the React app directory:
 
-Copy `.env.example` to `.env.local` and set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` to the **Web
-application** OAuth 2.0 client ID from Google Cloud Console. This is a client ID, not a client
-secret. Restart Expo after changing the environment file.
+```bash
+npm run test:api
+```
 
-The request helper in `src/lib/google-auth-api.ts` currently uses mock token and endpoint values.
-Replace those values when the backend is available; no screen calls this helper yet.
+This calls the public `GET /api/health` endpoint and does not send an auth token. It defaults to `http://localhost:8080`. To use a different API address, set `API_BASE_URL`, for example:
+
+```bash
+API_BASE_URL=http://192.168.1.25:8080 npm run test:api
+```
+
+## Google ID token handoff
+
+Copy `.env.example` to `.env` and set the Google Web, Android, and iOS OAuth client IDs for your app. The Explore tab has a **Continue with Google** test button: after Google returns an ID token, the app posts it to `POST /api/auth/google` and shows the identity returned by Spring Boot.
+
+Configure Spring Boot to accept those same client IDs as token audiences, separated by commas:
+
+```bash
+cd api
+GOOGLE_CLIENT_IDS="your-web-client-id, your-android-client-id, your-ios-client-id" sh ./gradlew bootRun
+```
+
+Restart Expo after changing `.env`. Android emulators use `10.0.2.2` by default; for a physical phone, set `EXPO_PUBLIC_API_BASE_URL` to the computer's LAN IP address. Google Android/iOS OAuth clients must also match the app's package/bundle identifiers and signing configuration.
 
 ## Get a fresh project
 
