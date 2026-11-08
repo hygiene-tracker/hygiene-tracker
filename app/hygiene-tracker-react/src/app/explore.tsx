@@ -4,6 +4,7 @@ import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ExternalLink } from '@/components/external-link';
+import { GoogleAuthTest } from '@/components/google-auth-test';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Collapsible } from '@/components/ui/collapsible';
@@ -59,6 +60,14 @@ export default function TabTwoScreen() {
         </ThemedView>
 
         <ThemedView style={styles.sectionsWrapper}>
+          <ThemedView type="backgroundElement" style={styles.authCheck}>
+            <ThemedText type="subtitle">Google token check</ThemedText>
+            <ThemedText type="small">
+              Sign in with Google to send an ID token to the Spring Boot API for validation.
+            </ThemedText>
+            <GoogleAuthTest />
+          </ThemedView>
+
           <Collapsible title="File-based routing">
             <ThemedText type="small">
               This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
@@ -162,6 +171,11 @@ const styles = StyleSheet.create({
     gap: Spacing.five,
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.three,
+  },
+  authCheck: {
+    gap: Spacing.two,
+    padding: Spacing.four,
+    borderRadius: Spacing.four,
   },
   collapsibleContent: {
     alignItems: 'center',
