@@ -1,6 +1,6 @@
 # Team Agreement: `The Cleanbusters`
 
-[Back to the Project 03 guide](README.md#the-team-agreement)
+[Back to the Project 03 guide](https://github.com/CST-438-projects/cst438-docs/blob/main/projects/p3/README.md#the-team-agreement)
 
 > Copy this file to `docs/team_agreement.md` in your team repo and commit it in Sprint 1.
 > Change it only through a pull request. Your PR report links to this file as it stood that
