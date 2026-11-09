@@ -1,0 +1,12 @@
+# Lint rules for docs/openapi.yaml: npx @redocly/cli lint docs/openapi.yaml
+# Redocly's recommended rules, with three turned off on purpose:
+extends:
+  - recommended
+
+rules:
+  # The repo has no license chosen yet; add `info.license` if the team picks one.
+  info-license: off
+  # localhost is the real local server (docker compose up); the production URL is added at deploy.
+  no-server-example.com: off
+  # Health checks have no 4xx responses: they take no input and need no sign-in.
+  operation-4xx-response: off
