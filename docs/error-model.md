@@ -15,7 +15,7 @@ check status codes and messages the same way on every endpoint.
   "title": "Bad Request",
   "status": 400,
   "detail": "Duration must be 1–120 minutes",
-  "instance": "/showers",
+  "instance": "/api/showers",
   "requestId": "3f2a9c1e-6b7d-4e21-9a0c-5d8e2f1b4c6a"
 }
 ```
@@ -40,7 +40,7 @@ check status codes and messages the same way on every endpoint.
   "title": "Bad Request",
   "status": 400,
   "detail": "Display name is required",
-  "instance": "/me",
+  "instance": "/api/me",
   "requestId": "8c1d4e7f-2a3b-4c5d-9e6f-0a1b2c3d4e5f",
   "errors": [
     { "field": "displayName", "message": "Display name is required" }
