@@ -1,0 +1,884 @@
+# OpenAPI contract for the Hygiene Tracker API (CST 438 Project 03).
+# View it: https://editor.swagger.io, or Swagger UI on the running API.
+# Lint it: npx @redocly/cli lint docs/openapi.yaml
+# Related: docs/prd.md, docs/erd.md, docs/error-model.md
+openapi: 3.0.3
+
+info:
+  title: Hygiene Tracker API
+  version: 0.2.0
+  description: |
+    Log showers, track your streak and score, and compete on a leaderboard.
+
+    **Routes.** All routes start with `/api`, except Spring Boot's `/actuator/health`.
+
+    **Authentication.** Sign in through `POST /api/auth/github` or `POST /api/auth/google` to
+    get a JWT that lasts one hour. Send it as `Authorization: Bearer <token>` on every other
+    request, except endpoints marked `security: []`.
+
+    **Errors.** All errors use the `Problem` shape described in `docs/error-model.md`. Any
+    endpoint can also return `500`.
+
+    **Ownership.** The API gets the user from the token, so requests never include the
+    caller's user ID. Another user's resource returns `404`.
+
+tags:
+  - name: Health
+    description: Health checks
+  - name: Auth
+    description: Sign in with GitHub or Google (PRD-1)
+  - name: Me
+    description: The signed-in user's profile, stats and account (PRD-2, PRD-3, PRD-5)
+  - name: Showers
+    description: Log showers and view history (PRD-4)
+  - name: Leaderboard
+    description: Top 10 and the "Loser" (PRD-6)
+  - name: Admin
+    description: Moderation, admin role only (PRD-7)
+
+servers:
+  - url: http://localhost:8080
+    description: Local (docker compose up). The production URL is added at deploy.
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ---------------------------------------------------------------- Health
+  /api/health:
+    get:
+      tags: [Health]
+      operationId: getHealth
+      summary: Check that the API is running
+      description: Returns `UP` when the API is running.
+      security: []
+      responses:
+        '200':
+          description: The API is running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /actuator/health:
+    get:
+      tags: [Health]
+      operationId: getActuatorHealth
+      summary: Check the API and its database (Spring Boot Actuator)
+      description: |
+        Checks the API and the database. Returns `503` with `DOWN` if the database is
+        unreachable. Uses Spring Boot's health format, not `Problem`.
+      security: []
+      responses:
+        '200':
+          description: The API and the database are up
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActuatorHealth'
+        '503':
+          description: The API is running but a dependency, such as the database, is down
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActuatorHealth'
+
+  # ---------------------------------------------------------------- Auth
+  /api/auth/github:
+    post:
+      tags: [Auth]
+      operationId: signInWithGithub
+      summary: Sign in with GitHub
+      description: |
+        The client signs in with GitHub (Authorization Code + PKCE) and sends the result here.
+        The API exchanges the code, checks the user's verified email, and returns a JWT.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CodeExchangeRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/SignedIn'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/EmailRegisteredWithOtherProvider'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /api/auth/google:
+    post:
+      tags: [Auth]
+      operationId: signInWithGoogle
+      summary: Sign in with Google
+      description: |
+        Web sends a code (Authorization Code + PKCE). Android sends a Google ID token. The API
+        verifies it, checks the user's verified email, and returns a JWT.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/CodeExchangeRequest'
+                - $ref: '#/components/schemas/GoogleIdTokenRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/SignedIn'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/EmailRegisteredWithOtherProvider'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  # ---------------------------------------------------------------- Me
+  /api/me:
+    get:
+      tags: [Me]
+      operationId: getMe
+      summary: Get my profile
+      responses:
+        '200':
+          description: The signed-in user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      tags: [Me]
+      operationId: updateMe
+      summary: Update my display name and avatar (PRD-2)
+      description: Send only the fields to change.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: The updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: A field is invalid
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              example:
+                type: about:blank
+                title: Bad Request
+                status: 400
+                detail: Display name is required
+                instance: /api/me
+                requestId: 8c1d4e7f-2a3b-4c5d-9e6f-0a1b2c3d4e5f
+                errors:
+                  - field: displayName
+                    message: Display name is required
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      tags: [Me]
+      operationId: deleteMe
+      summary: Delete my account (PRD-3)
+      description: Deletes the user and all of their data.
+      responses:
+        '204':
+          description: The account and its data are deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/me/stats:
+    get:
+      tags: [Me]
+      operationId: getMyStats
+      summary: Get my streak, score and missed days (PRD-5)
+      responses:
+        '200':
+          description: The signed-in user's stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stats'
+              example:
+                streak: 0
+                score: 24
+                daysSinceLastShower: 3
+                pointsLostToMissedDays: 6
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ---------------------------------------------------------------- Showers
+  /api/showers:
+    post:
+      tags: [Showers]
+      operationId: logShower
+      summary: Log a shower (PRD-4)
+      description: Logs a shower for the signed-in user and returns it with updated stats.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogShowerRequest'
+            example:
+              minutes: 10
+              localDate: '2026-11-12'
+              shampoo: true
+              conditioner: false
+              bodyWash: true
+              exfoliant: false
+      responses:
+        '201':
+          description: The shower is logged
+          headers:
+            Location:
+              description: The URL of the new shower, `/api/showers/{id}`
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogShowerResponse'
+        '400':
+          description: Invalid duration or date. Nothing is saved.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              example:
+                type: about:blank
+                title: Bad Request
+                status: 400
+                detail: Duration must be 1–120 minutes
+                instance: /api/showers
+                requestId: 3f2a9c1e-6b7d-4e21-9a0c-5d8e2f1b4c6a
+                errors:
+                  - field: minutes
+                    message: Duration must be 1–120 minutes
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    get:
+      tags: [Showers]
+      operationId: listMyShowers
+      summary: List my showers (paginated)
+      description: Returns the signed-in user's showers, newest first. Pages start at 0.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: One page of the user's showers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShowerPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/showers/{id}:
+    get:
+      tags: [Showers]
+      operationId: getShower
+      summary: Get one of my showers
+      parameters:
+        - $ref: '#/components/parameters/ShowerId'
+      responses:
+        '200':
+          description: The shower
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shower'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ---------------------------------------------------------------- Leaderboard
+  /api/leaderboard:
+    get:
+      tags: [Leaderboard]
+      operationId: getLeaderboard
+      summary: Get the top 10 and the "Loser" (PRD-6)
+      description: |
+        Ranks users by their 30-day score. Leaves out banned users, users without a display
+        name, and users with more than 10 showers in one day. The "Loser" is the lowest score
+        among users who showered in the last 7 days. Emails are never shown.
+      responses:
+        '200':
+          description: The leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leaderboard'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ---------------------------------------------------------------- Admin
+  /api/admin/users:
+    get:
+      tags: [Admin]
+      operationId: listUsers
+      summary: List users for moderation (paginated, admin only)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: banned
+          in: query
+          required: false
+          description: '`true` for banned users only, `false` for users who are not banned.'
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: One page of users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/admin/users/{id}/ban:
+    put:
+      tags: [Admin]
+      operationId: banUser
+      summary: Ban a user (admin only)
+      description: |
+        Hides the user from the leaderboard. Banning a user who is already banned changes
+        nothing and returns `204`.
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BanRequest'
+      responses:
+        '204':
+          description: The user is banned
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: An admin cannot ban themselves
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+    delete:
+      tags: [Admin]
+      operationId: unbanUser
+      summary: Unban a user (admin only)
+      description: Removes the ban, so the user shows on the leaderboard again.
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '204':
+          description: The user is not banned
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/admin/users/{id}/admin-role:
+    delete:
+      tags: [Admin]
+      operationId: revokeAdminRole
+      summary: Revoke a user's admin role (admin only)
+      description: |
+        Sets the user's role to `USER`. Admin endpoints check the role in the database, so the
+        user gets `403` right away, even with an older token.
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '204':
+          description: The user's role is `USER`
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: An admin cannot revoke their own role
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: The JWT from `POST /api/auth/github` or `POST /api/auth/google`.
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      required: false
+      description: Page number, starting at 0.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Size:
+      name: size
+      in: query
+      required: false
+      description: Items per page.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    ShowerId:
+      name: id
+      in: path
+      required: true
+      description: The shower's ID.
+      schema:
+        type: integer
+        format: int64
+    UserId:
+      name: id
+      in: path
+      required: true
+      description: The user's ID.
+      schema:
+        type: integer
+        format: int64
+
+  responses:
+    SignedIn:
+      description: Signed in. Send `token` as the Bearer token on other requests.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AuthResponse'
+    BadRequest:
+      description: Invalid request. Nothing is changed.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Unauthorized:
+      description: Missing, invalid or expired token
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: about:blank
+            title: Unauthorized
+            status: 401
+            detail: Sign in to continue
+            instance: /api/me
+            requestId: 1b2c3d4e-5f60-4a7b-8c9d-0e1f2a3b4c5d
+    Forbidden:
+      description: The user's role doesn't allow this
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: about:blank
+            title: Forbidden
+            status: 403
+            detail: You don't have permission to do that
+            instance: /api/admin/users
+            requestId: 2c3d4e5f-6071-4b8c-9d0e-1f2a3b4c5d6e
+    NotFound:
+      description: Doesn't exist, or belongs to another user
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: about:blank
+            title: Not Found
+            status: 404
+            detail: Not found
+            instance: /api/showers/42
+            requestId: 3d4e5f60-7182-4c9d-8e0f-2a3b4c5d6e7f
+    EmailRegisteredWithOtherProvider:
+      description: The email is already registered with the other provider. Nothing is saved.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: about:blank
+            title: Conflict
+            status: 409
+            detail: This email is registered with GitHub
+            instance: /api/auth/google
+            requestId: 4e5f6071-8293-4d0e-9f1a-3b4c5d6e7f80
+    ServiceUnavailable:
+      description: The database, GitHub or Google can't be reached
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    # -------------------------------------------------------------- Errors
+    Problem:
+      type: object
+      description: The error shape for every endpoint (RFC 9457). See docs/error-model.md.
+      required: [type, title, status, detail, instance, requestId]
+      properties:
+        type:
+          type: string
+          description: Always `about:blank`.
+          example: about:blank
+        title:
+          type: string
+          description: Standard name of the status code.
+          example: Bad Request
+        status:
+          type: integer
+          description: The HTTP status code.
+          example: 400
+        detail:
+          type: string
+          description: Message to show the user.
+          example: Duration must be 1–120 minutes
+        instance:
+          type: string
+          description: The request path that failed.
+          example: /api/showers
+        requestId:
+          type: string
+          description: Matches the request's log line and `X-Request-Id` header.
+          example: 3f2a9c1e-6b7d-4e21-9a0c-5d8e2f1b4c6a
+        errors:
+          type: array
+          description: Validation errors only. One entry per invalid field.
+          items:
+            $ref: '#/components/schemas/FieldError'
+    FieldError:
+      type: object
+      required: [field, message]
+      properties:
+        field:
+          type: string
+          example: minutes
+        message:
+          type: string
+          example: Duration must be 1–120 minutes
+
+    # -------------------------------------------------------------- Health
+    HealthResponse:
+      type: object
+      required: [status, message]
+      properties:
+        status:
+          type: string
+          example: UP
+        message:
+          type: string
+          example: Hygiene Tracker API is running
+    ActuatorHealth:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN]
+
+    # -------------------------------------------------------------- Auth
+    CodeExchangeRequest:
+      type: object
+      description: Sent by the client after Authorization Code + PKCE.
+      required: [code, codeVerifier, redirectUri]
+      properties:
+        code:
+          type: string
+          description: Authorization code from the provider.
+        codeVerifier:
+          type: string
+          description: PKCE code verifier the client created.
+        redirectUri:
+          type: string
+          description: Same redirect URI used to start sign-in.
+          example: http://localhost:8081/auth
+    GoogleIdTokenRequest:
+      type: object
+      description: ID token from Google Sign-In (Android).
+      required: [idToken]
+      properties:
+        idToken:
+          type: string
+    AuthResponse:
+      type: object
+      required: [token, tokenType, expiresIn, user]
+      properties:
+        token:
+          type: string
+          description: JWT for the `Authorization` header.
+        tokenType:
+          type: string
+          enum: [Bearer]
+        expiresIn:
+          type: integer
+          description: Seconds until the token expires.
+          example: 3600
+        user:
+          $ref: '#/components/schemas/User'
+
+    # -------------------------------------------------------------- Users
+    User:
+      type: object
+      description: The signed-in user's own profile, including their email.
+      required: [id, email, displayName, avatar, role, createdAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 7
+        email:
+          type: string
+          format: email
+          example: student@csumb.edu
+        displayName:
+          type: string
+          nullable: true
+          description: Null until set (PRD-2).
+          example: Fresh Prince
+        avatar:
+          type: string
+          nullable: true
+          description: Preset avatar key. Null until chosen.
+          example: duck
+        role:
+          type: string
+          enum: [USER, ADMIN]
+        createdAt:
+          type: string
+          format: date-time
+    UpdateProfileRequest:
+      type: object
+      minProperties: 1
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 32
+          description: 1–32 characters after trimming. Empty returns "Display name is required".
+          example: Fresh Prince
+        avatar:
+          type: string
+          description: A preset avatar key.
+          example: duck
+    Stats:
+      type: object
+      required: [streak, score, daysSinceLastShower, pointsLostToMissedDays]
+      properties:
+        streak:
+          type: integer
+          minimum: 0
+          description: Days in a row with at least one shower, ending today or yesterday.
+        score:
+          type: integer
+          description: Score over the last 30 days (PRD-5).
+        daysSinceLastShower:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: Null if the user has never showered.
+        pointsLostToMissedDays:
+          type: integer
+          minimum: 0
+          description: Points lost to missed days since the last shower.
+
+    # -------------------------------------------------------------- Showers
+    LogShowerRequest:
+      type: object
+      required: [minutes, localDate]
+      properties:
+        minutes:
+          type: integer
+          minimum: 1
+          maximum: 120
+          description: Duration. Outside 1–120 returns "Duration must be 1–120 minutes".
+        localDate:
+          type: string
+          format: date
+          description: The user's local date. Must be within one day of the server's date.
+        shampoo:
+          type: boolean
+          default: false
+        conditioner:
+          type: boolean
+          default: false
+        bodyWash:
+          type: boolean
+          default: false
+        exfoliant:
+          type: boolean
+          default: false
+    Shower:
+      type: object
+      required: [id, minutes, localDate, loggedAt, shampoo, conditioner, bodyWash, exfoliant]
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 42
+        minutes:
+          type: integer
+          example: 10
+        localDate:
+          type: string
+          format: date
+        loggedAt:
+          type: string
+          format: date-time
+          description: When the shower was logged.
+        shampoo:
+          type: boolean
+        conditioner:
+          type: boolean
+        bodyWash:
+          type: boolean
+        exfoliant:
+          type: boolean
+    LogShowerResponse:
+      type: object
+      required: [shower, stats]
+      properties:
+        shower:
+          $ref: '#/components/schemas/Shower'
+        stats:
+          $ref: '#/components/schemas/Stats'
+    ShowerPage:
+      type: object
+      required: [content, page, size, totalElements, totalPages]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Shower'
+        page:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20
+        totalElements:
+          type: integer
+          format: int64
+          example: 37
+        totalPages:
+          type: integer
+          example: 2
+
+    # -------------------------------------------------------------- Leaderboard
+    LeaderboardEntry:
+      type: object
+      description: Public user info. Never includes the email.
+      required: [rank, userId, displayName, avatar, score]
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+        userId:
+          type: integer
+          format: int64
+        displayName:
+          type: string
+        avatar:
+          type: string
+          nullable: true
+        score:
+          type: integer
+          description: 30-day score.
+    Leaderboard:
+      type: object
+      required: [top, loser]
+      properties:
+        top:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/LeaderboardEntry'
+        loser:
+          description: Lowest score among users who showered in the last 7 days. Null if none.
+          type: object
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/LeaderboardEntry'
+
+    # -------------------------------------------------------------- Admin
+    BanRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 200
+          description: Optional reason for the ban.
+    AdminUser:
+      type: object
+      required: [id, displayName, role, banned]
+      properties:
+        id:
+          type: integer
+          format: int64
+        displayName:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [USER, ADMIN]
+        banned:
+          type: boolean
+    AdminUserPage:
+      type: object
+      required: [content, page, size, totalElements, totalPages]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUser'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
