@@ -6,7 +6,7 @@ import { ActivityIndicator, Platform, Pressable, StyleSheet } from 'react-native
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
-import { validateGoogleIdToken, type VerifiedGoogleUser } from '@/services/google-auth';
+import { signInWithGoogle, type AuthResponse } from '@/services/google-auth';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -30,13 +30,13 @@ export function GoogleAuthTest() {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('Not connected');
-  const [user, setUser] = useState<VerifiedGoogleUser | null>(null);
+  const [auth, setAuth] = useState<AuthResponse | null>(null);
 
   const configured = hasPlatformClientId();
 
   const handlePress = async () => {
     setLoading(true);
-    setUser(null);
+    setAuth(null);
     setMessage('Opening Google sign-in…');
 
     try {
@@ -61,9 +61,9 @@ export function GoogleAuthTest() {
       }
 
       setMessage('Checking token with Spring Boot…');
-      const verifiedUser = await validateGoogleIdToken(idToken);
-      setUser(verifiedUser);
-      setMessage('Google token verified by Spring Boot.');
+      const authResponse = await signInWithGoogle(idToken);
+      setAuth(authResponse);
+      setMessage('Signed in with Google.');
     } catch (error: unknown) {
       setMessage(error instanceof Error ? error.message : 'Could not validate the Google token.');
     } finally {
@@ -91,7 +91,7 @@ export function GoogleAuthTest() {
       <ThemedText type="small" accessibilityLiveRegion="polite">
         {configured ? message : `Add a Google ${Platform.OS} client ID to the app environment.`}
       </ThemedText>
-      {user?.email ? <ThemedText type="small">Verified account: {user.email}</ThemedText> : null}
+      {auth?.user.email ? <ThemedText type="small">Signed-in account: {auth.user.email}</ThemedText> : null}
     </ThemedView>
   );
 }
