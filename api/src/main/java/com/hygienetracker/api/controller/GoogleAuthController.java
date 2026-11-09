@@ -10,6 +10,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +36,7 @@ public class GoogleAuthController {
     private final GoogleIdTokenVerifier verifier;
     private final byte[] jwtSecret;
 
+    @Autowired
     public GoogleAuthController(
             @Value("${google.oauth.client-ids:}") String clientIds,
             @Value("${jwt.secret:}") String jwtSecret) {
@@ -48,6 +50,11 @@ public class GoogleAuthController {
                         new NetHttpTransport(), GsonFactory.getDefaultInstance())
                         .setAudience(audiences)
                         .build();
+        this.jwtSecret = jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    GoogleAuthController(GoogleIdTokenVerifier verifier, String jwtSecret) {
+        this.verifier = verifier;
         this.jwtSecret = jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8);
     }
 
