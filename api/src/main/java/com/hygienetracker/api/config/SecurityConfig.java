@@ -18,7 +18,10 @@ public class SecurityConfig {
                     "/api/health",
                     "/api/auth/google",
                     "/actuator/health",
-                    "/actuator/health/**"
+                    "/actuator/health/**",
+                    "/swagger-ui.html",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
