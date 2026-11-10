@@ -26,7 +26,6 @@ class GoogleAuthControllerTest {
         when(payload.getSubject()).thenReturn("google-subject-123");
         when(payload.getEmail()).thenReturn("student@example.com");
         when(payload.getEmailVerified()).thenReturn(true);
-        when(payload.get("name")).thenReturn("Test Student");
 
         MockMvc mockMvc = standaloneSetup(
                 new GoogleAuthController(verifier, "test-secret-that-is-at-least-32-bytes-long"))
@@ -41,7 +40,27 @@ class GoogleAuthControllerTest {
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
                 .andExpect(jsonPath("$.expiresIn").value(3600))
                 .andExpect(jsonPath("$.user.email").value("student@example.com"))
-                .andExpect(jsonPath("$.user.displayName").value("Test Student"))
                 .andExpect(jsonPath("$.user.role").value("USER"));
+    }
+
+    @Test
+    void rejectsGoogleIdTokenForUnverifiedEmail() throws Exception {
+        GoogleIdTokenVerifier verifier = mock(GoogleIdTokenVerifier.class);
+        GoogleIdToken googleToken = mock(GoogleIdToken.class);
+        GoogleIdToken.Payload payload = mock(GoogleIdToken.Payload.class);
+
+        when(verifier.verify("mock-unverified-google-id-token")).thenReturn(googleToken);
+        when(googleToken.getPayload()).thenReturn(payload);
+        when(payload.getEmailVerified()).thenReturn(false);
+
+        MockMvc mockMvc = standaloneSetup(
+                new GoogleAuthController(verifier, "test-secret-that-is-at-least-32-bytes-long"))
+                .build();
+
+        mockMvc.perform(post("/api/auth/google")
+                        .contentType("application/json")
+                        .content("{\"idToken\":\"mock-unverified-google-id-token\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("Google account email is not verified"));
     }
 }

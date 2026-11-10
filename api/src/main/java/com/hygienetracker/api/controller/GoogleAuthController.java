@@ -82,7 +82,6 @@ public class GoogleAuthController {
             UserResponse user = new UserResponse(
                     stableUserId(payload.getSubject()),
                     payload.getEmail(),
-                    claimAsString(payload, "name"),
                     null,
                     "USER",
                     applicationToken.createdAt());
@@ -135,11 +134,6 @@ public class GoogleAuthController {
                 null));
     }
 
-    private static String claimAsString(GoogleIdToken.Payload payload, String claim) {
-        Object value = payload.get(claim);
-        return value instanceof String string ? string : null;
-    }
-
     public record TokenRequest(
             @Size(max = 8192) String idToken) {}
 
@@ -152,7 +146,6 @@ public class GoogleAuthController {
     public record UserResponse(
             long id,
             String email,
-            String displayName,
             String avatar,
             String role,
             Instant createdAt) {}

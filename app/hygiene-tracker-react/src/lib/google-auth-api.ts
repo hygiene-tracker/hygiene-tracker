@@ -8,7 +8,6 @@ export type GoogleAuthContractResponse = {
   user: {
     id: number;
     email: string;
-    displayName: string | null;
     avatar: string | null;
     role: 'USER' | 'ADMIN';
     createdAt: string;
