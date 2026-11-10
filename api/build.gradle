@@ -25,6 +25,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'com.google.api-client:google-api-client:2.9.2'
 	runtimeOnly 'org.postgresql:postgresql'
 	testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
@@ -36,9 +37,7 @@ dependencies {
 
 	runtimeOnly 'com.h2database:h2' // For testing purposes to be switched to Neon Postgres in production
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-
-	// Swagger / OpenAPI documentation
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0'
 }
 
 jacoco {
@@ -46,8 +45,8 @@ jacoco {
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
-    finalizedBy tasks.named('jacocoTestReport')
+	useJUnitPlatform()
+	finalizedBy tasks.named('jacocoTestReport')
 }
 
 tasks.named('jacocoTestReport') {
@@ -58,4 +57,25 @@ tasks.named('jacocoTestReport') {
         csv.required = false
         html.required = true
     }
+}
+
+tasks.named('jacocoTestCoverageVerification') {
+    dependsOn tasks.named('test')
+
+    violationRules {
+        rule {
+            element = 'PACKAGE'
+            includes = ['com.hygienetracker.api.service']
+
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.70
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestCoverageVerification')
 }
