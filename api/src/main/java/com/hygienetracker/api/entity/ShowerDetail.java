@@ -1,4 +1,3 @@
-
 package com.hygienetracker.api.entity;
 
 import jakarta.persistence.*;
@@ -15,14 +14,17 @@ public class ShowerDetail {
     @JoinColumn(name = "log_id", nullable = false, unique = true)
     private ActivityLog activityLog;
 
-    private Boolean shampoo = false;
+    @Column(nullable = false)
+    private boolean shampoo = false;
 
-    private Boolean conditioner = false;
+    @Column(nullable = false)
+    private boolean conditioner = false;
 
-    @Column(name = "body_wash")
-    private Boolean bodyWash = false;
+    @Column(name = "body_wash", nullable = false)
+    private boolean bodyWash = false;
 
-    private Boolean exfoliant = false;
+    @Column(nullable = false)
+    private boolean exfoliant = false;
 
     public ShowerDetail() {
     }
@@ -39,35 +41,35 @@ public class ShowerDetail {
         this.activityLog = activityLog;
     }
 
-    public Boolean getShampoo() {
+    public boolean getShampoo() {
         return shampoo;
     }
 
-    public void setShampoo(Boolean shampoo) {
+    public void setShampoo(boolean shampoo) {
         this.shampoo = shampoo;
     }
 
-    public Boolean getConditioner() {
+    public boolean getConditioner() {
         return conditioner;
     }
 
-    public void setConditioner(Boolean conditioner) {
+    public void setConditioner(boolean conditioner) {
         this.conditioner = conditioner;
     }
 
-    public Boolean getBodyWash() {
+    public boolean getBodyWash() {
         return bodyWash;
     }
 
-    public void setBodyWash(Boolean bodyWash) {
+    public void setBodyWash(boolean bodyWash) {
         this.bodyWash = bodyWash;
     }
 
-    public Boolean getExfoliant() {
+    public boolean getExfoliant() {
         return exfoliant;
     }
 
-    public void setExfoliant(Boolean exfoliant) {
+    public void setExfoliant(boolean exfoliant) {
         this.exfoliant = exfoliant;
     }
 }

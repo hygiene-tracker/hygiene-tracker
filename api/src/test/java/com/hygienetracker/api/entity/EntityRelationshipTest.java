@@ -20,9 +20,9 @@ class EntityRelationshipTest {
     void entitiesCanBeSavedAndUserDeletionCascades() {
         // Create and save a user
         User user = new User();
+        user.setEmail("test@example.com");
         user.setDisplayName("Test User");
         user.setAvatar("test-avatar.png");
-        user.setRole("USER");
 
         entityManager.persist(user);
 
@@ -67,6 +67,8 @@ class EntityRelationshipTest {
         assertEquals("SHOWER", savedLog.getType().getName());
         assertEquals(15, savedLog.getMinutes());
         assertTrue(savedLog.getShowerDetail().getShampoo());
+        assertEquals("test@example.com", savedLog.getUser().getEmail());
+        assertEquals("USER", savedLog.getUser().getRole());
 
         // Delete the user
         User savedUser = entityManager.find(User.class, userId);
