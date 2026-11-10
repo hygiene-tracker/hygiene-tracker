@@ -16,6 +16,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/api/health",
+                    "/api/auth/google",
                     "/actuator/health",
                     "/actuator/health/**",
                     "/swagger-ui.html",
@@ -24,6 +25,7 @@ public class SecurityConfig {
                 ).permitAll()
                 .anyRequest().authenticated()
             )
+            .csrf(csrf -> csrf.ignoringRequestMatchers("/api/auth/google"))
             .formLogin(form -> form.disable())
             .httpBasic(basic -> basic.disable());
 
