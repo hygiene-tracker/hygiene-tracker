@@ -47,6 +47,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "test:security": "npm audit --audit-level=moderate",
     "test:api": "node --test tests/api-connectivity.test.cjs"
   },
   "private": true
