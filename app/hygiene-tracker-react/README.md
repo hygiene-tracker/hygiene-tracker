@@ -52,17 +52,15 @@ GOOGLE_CLIENT_IDS="your-web-client-id, your-android-client-id, your-ios-client-i
 
 Restart Expo after changing `.env`. Android emulators use `10.0.2.2` by default; for a physical phone, set `EXPO_PUBLIC_API_BASE_URL` to the computer's LAN IP address. Google Android/iOS OAuth clients must also match the app's package/bundle identifiers and signing configuration.
 
-## GitHub OAuth callback
+## GitHub sign-in
 
-The API handles GitHub's authorization-code flow. Register `http://localhost:8080/api/auth/github/callback` as the GitHub OAuth App callback URL. Copy `api/.env.example` to `api/.env`, then set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` from the GitHub OAuth App settings. Keep the secret in the API environment; do not put it in the Expo `.env` file. The API returns the validated profile to the app through the `GITHUB_APP_REDIRECT_URI` deep link, using a short-lived, one-time handoff code.
+The app signs in with GitHub using Authorization Code + PKCE (`expo-auth-session`), then sends `{code, codeVerifier, redirectUri}` to `POST /api/auth/github`. The API exchanges the code with GitHub (the client secret stays on the API), checks the account's primary verified email, and returns the app's JWT.
 
-Spring Boot does not load `.env` files automatically. From the repository root, run the helper script to load the API `.env` and start Spring Boot:
+1. In the GitHub OAuth App, register the app's redirect URI as a callback URL (`hygiene-tracker://auth/github` for the development build).
+2. Set `EXPO_PUBLIC_GITHUB_CLIENT_ID` in the app's `.env` (see `.env.example`). Only the client ID goes here; never the secret.
+3. Start the API with `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` and `JWT_SECRET` set in its environment (see `api/.env.example`).
 
-```bash
-./api/test-github-oauth.sh
-```
-
-The Explore screen has a **Continue with GitHub** button for the native app. Its custom URL scheme requires an iOS or Android development build; Expo Go does not register this app-specific scheme. The button opens the backend login route, then receives the validated profile after the callback. You can also open `http://localhost:8080/api/auth/github/login` directly in a browser to inspect the redirect flow.
+The **Continue with GitHub** button on the Explore screen needs an Android or iOS development build: Expo Go does not register the app's custom URL scheme. Web sign-in is not supported yet.
 
 ## Get a fresh project
 
