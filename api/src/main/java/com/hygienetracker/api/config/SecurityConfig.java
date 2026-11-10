@@ -16,11 +16,13 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/api/health",
+                    "/api/auth/google",
                     "/actuator/health",
                     "/actuator/health/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
+            .csrf(csrf -> csrf.ignoringRequestMatchers("/api/auth/google"))
             .formLogin(form -> form.disable())
             .httpBasic(basic -> basic.disable());
 
