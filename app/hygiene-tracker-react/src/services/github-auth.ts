@@ -1,19 +1,8 @@
-import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
-export type VerifiedGithubUser = {
-  id: number;
-  login: string;
-  name: string | null;
-  email: string | null;
-  emailVerified: boolean;
-  avatar_url: string | null;
-};
+import type { AuthResponse } from '@/services/google-auth';
 
-type GithubAuthResponse = {
-  valid: boolean;
-  user: VerifiedGithubUser;
-};
+export type GithubAuthResponse = AuthResponse;
 
 type ApiError = { error?: string };
 
@@ -22,35 +11,20 @@ const apiBaseUrl = (process.env.EXPO_PUBLIC_API_BASE_URL || `http://${defaultApi
   /\/$/,
   ''
 );
-const appRedirectUri = 'hygiene-tracker://auth/github';
 
-export async function signInWithGithub(): Promise<VerifiedGithubUser> {
+export async function exchangeGithubCode(
+  code: string,
+  codeVerifier: string,
+  redirectUri: string
+): Promise<AuthResponse> {
   if (Platform.OS === 'web') {
-    throw new Error('GitHub sign-in handoff is currently configured for the iOS and Android app.');
+    throw new Error('GitHub PKCE sign-in is currently configured for the iOS and Android app.');
   }
 
-  const result = await WebBrowser.openAuthSessionAsync(
-    `${apiBaseUrl}/api/auth/github/login`,
-    appRedirectUri
-  );
-  if (result.type !== 'success') {
-    throw new Error('GitHub sign-in was canceled or dismissed.');
-  }
-
-  const redirectUrl = new URL(result.url);
-  const error = redirectUrl.searchParams.get('error');
-  if (error) {
-    throw new Error(`GitHub sign-in failed (${error}).`);
-  }
-  const handoffId = redirectUrl.searchParams.get('handoffId');
-  if (!handoffId) {
-    throw new Error('GitHub returned without a sign-in result.');
-  }
-
-  const response = await fetch(`${apiBaseUrl}/api/auth/github/result`, {
+  const response = await fetch(`${apiBaseUrl}/api/auth/github/exchange`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ handoffId }),
+    body: JSON.stringify({ code, codeVerifier, redirectUri }),
   });
   const body = (await response.json().catch(() => ({}))) as GithubAuthResponse | ApiError;
   if (!response.ok) {
@@ -58,8 +32,8 @@ export async function signInWithGithub(): Promise<VerifiedGithubUser> {
       'error' in body && body.error ? body.error : `API request failed (${response.status})`
     );
   }
-  if (!('valid' in body) || !body.valid || !body.user) {
+  if (!('token' in body) || typeof body.token !== 'string' || body.tokenType !== 'Bearer' || !body.user) {
     throw new Error('The API returned an unexpected GitHub auth response.');
   }
-  return body.user;
+  return body;
 }

@@ -18,8 +18,7 @@ if [[ -z "${GITHUB_CLIENT_ID:-}" || -z "${GITHUB_CLIENT_SECRET:-}" ]]; then
   exit 1
 fi
 
-callback_uri="${GITHUB_CALLBACK_URI:-http://localhost:8080/api/auth/github/callback}"
-echo "Configured callback URI: $callback_uri"
-echo "After the API starts, open: http://localhost:8080/api/auth/github/login"
-echo "Make sure the configured callback URI exactly matches the URL in your GitHub OAuth App."
+echo "GitHub PKCE exchange is configured on the API."
+echo "Set EXPO_PUBLIC_GITHUB_CLIENT_ID in app/hygiene-tracker-react/.env.example's copied .env."
+echo "Start the app and use the Continue with GitHub button to exercise the PKCE flow."
 exec sh ./gradlew bootRun
