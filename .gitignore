@@ -30,3 +30,6 @@ replay_pid*
 
 # IntelliJ IDEA project files (machine-specific)
 .idea/
+
+# Neon CLI project link (machine-specific)
+.neon

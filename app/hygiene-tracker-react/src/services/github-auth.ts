@@ -4,7 +4,7 @@ import type { AuthResponse } from '@/services/google-auth';
 
 export type GithubAuthResponse = AuthResponse;
 
-type ApiError = { error?: string };
+type ProblemResponse = { detail?: string };
 
 const defaultApiHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 const apiBaseUrl = (process.env.EXPO_PUBLIC_API_BASE_URL || `http://${defaultApiHost}:8080`).replace(
@@ -21,15 +21,15 @@ export async function exchangeGithubCode(
     throw new Error('GitHub PKCE sign-in is currently configured for the iOS and Android app.');
   }
 
-  const response = await fetch(`${apiBaseUrl}/api/auth/github/exchange`, {
+  const response = await fetch(`${apiBaseUrl}/api/auth/github`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code, codeVerifier, redirectUri }),
   });
-  const body = (await response.json().catch(() => ({}))) as GithubAuthResponse | ApiError;
+  const body = (await response.json().catch(() => ({}))) as GithubAuthResponse | ProblemResponse;
   if (!response.ok) {
     throw new Error(
-      'error' in body && body.error ? body.error : `API request failed (${response.status})`
+      'detail' in body && body.detail ? body.detail : `API request failed (${response.status})`
     );
   }
   if (!('token' in body) || typeof body.token !== 'string' || body.tokenType !== 'Bearer' || !body.user) {

@@ -1,9 +1,8 @@
 package com.hygienetracker.api.controller;
 
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
+import com.hygienetracker.api.auth.AppTokenService;
+import com.hygienetracker.api.auth.AuthUser;
+import com.hygienetracker.api.error.Problem;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -23,44 +22,42 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.Date;
-import java.util.Map;
-import java.util.UUID;
-
+/**
+ * {@code POST /api/auth/github}: finishes GitHub's Authorization Code + PKCE flow on the server
+ * (the client secret never leaves the API) and returns the API's own JWT (Appendix I, 3.4).
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class GithubAuthController {
 
-    private static final long TOKEN_LIFETIME_SECONDS = 3_600;
+    private static final String PATH = "/api/auth/github";
 
     private final RestClient githubClient;
     private final RestClient oauthClient;
     private final String clientId;
     private final String clientSecret;
-    private final byte[] jwtSecret;
+    private final AppTokenService tokens;
 
     @Autowired
     public GithubAuthController(
             RestClient.Builder restClientBuilder,
             @Value("${github.oauth.client-id:}") String clientId,
             @Value("${github.oauth.client-secret:}") String clientSecret,
-            @Value("${jwt.secret:}") String jwtSecret) {
+            AppTokenService tokens) {
         this(
-                restClientBuilder
+                restClientBuilder.clone()
                         .baseUrl("https://api.github.com")
                         .defaultHeader(HttpHeaders.ACCEPT, "application/vnd.github+json")
                         .defaultHeader(HttpHeaders.USER_AGENT, "hygiene-tracker-api")
                         .build(),
-                restClientBuilder
+                restClientBuilder.clone()
                         .baseUrl("https://github.com")
                         .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                         .defaultHeader(HttpHeaders.USER_AGENT, "hygiene-tracker-api")
                         .build(),
                 clientId,
                 clientSecret,
-                jwtSecret);
+                tokens);
     }
 
     GithubAuthController(
@@ -68,88 +65,63 @@ public class GithubAuthController {
             RestClient oauthClient,
             String clientId,
             String clientSecret,
-            String jwtSecret) {
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
-        this.jwtSecret = jwtSecret.getBytes(StandardCharsets.UTF_8);
+            AppTokenService tokens) {
         this.githubClient = githubClient;
         this.oauthClient = oauthClient;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+        this.tokens = tokens;
     }
 
-    @PostMapping("/github/exchange")
-    public ResponseEntity<?> exchangeGithubCode(@Valid @RequestBody CodeRequest request) {
-        if (clientId.isBlank() || clientSecret.isBlank() || jwtSecret.length < 32) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(Map.of("error", "GitHub sign-in is not configured"));
+    /**
+     * Exchanges the code with GitHub, reads the user's primary verified email, and signs in.
+     * Returns 200 with a JWT, or 400 / 503 as a {@link Problem}.
+     */
+    @PostMapping("/github")
+    public ResponseEntity<?> signInWithGithub(@Valid @RequestBody CodeRequest request) {
+        if (clientId.isBlank() || clientSecret.isBlank()) {
+            return Problem.response(HttpStatus.SERVICE_UNAVAILABLE, "GitHub sign-in is not configured", PATH);
         }
 
         try {
-            MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-            form.add("client_id", clientId);
-            form.add("client_secret", clientSecret);
-            form.add("code", request.code());
-            form.add("redirect_uri", request.redirectUri());
-            form.add("code_verifier", request.codeVerifier());
-            GithubToken token = oauthClient.post()
-                    .uri("/login/oauth/access_token")
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(form)
-                    .retrieve()
-                    .body(GithubToken.class);
+            GithubToken token = exchangeCode(request);
             if (token == null || token.access_token() == null || token.access_token().isBlank()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("error", "GitHub authorization code could not be exchanged"));
+                return Problem.response(
+                        HttpStatus.BAD_REQUEST, "GitHub authorization code could not be exchanged", PATH);
             }
 
             GithubUser user = fetchGithubUser(token.access_token());
             if (user == null || user.id() == null) {
-                return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                        .body(Map.of("error", "GitHub profile could not be loaded"));
+                return Problem.response(
+                        HttpStatus.SERVICE_UNAVAILABLE, "GitHub profile could not be loaded", PATH);
             }
             if (!user.emailVerified() || user.email() == null || user.email().isBlank()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("error", "GitHub account email is not verified"));
+                return Problem.response(HttpStatus.BAD_REQUEST, "GitHub account email is not verified", PATH);
             }
-            return ResponseEntity.ok(createAuthResponse(user));
+
+            // TODO: replace with the stored user from find-or-create once users are saved.
+            return ResponseEntity.ok(tokens.signIn(AuthUser.newUser(user.id(), user.email())));
         } catch (RestClientResponseException exception) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "GitHub authorization code is invalid or expired"));
-        } catch (JOSEException exception) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(Map.of("error", "Unable to create an application token right now"));
+            return Problem.response(
+                    HttpStatus.BAD_REQUEST, "GitHub authorization code is invalid or expired", PATH);
         } catch (RestClientException exception) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(Map.of("error", "Unable to reach GitHub right now"));
+            return Problem.response(HttpStatus.SERVICE_UNAVAILABLE, "Unable to reach GitHub right now", PATH);
         }
     }
 
-    private AuthResponse createAuthResponse(GithubUser user) throws JOSEException {
-        Instant createdAt = Instant.now();
-        Date issuedAt = Date.from(createdAt);
-        Date expiresAt = new Date(issuedAt.getTime() + TOKEN_LIFETIME_SECONDS * 1_000);
-        JWTClaimsSet claims = new JWTClaimsSet.Builder()
-                .subject(String.valueOf(user.id()))
-                .issuer("hygiene-tracker-api")
-                .claim("provider", "github")
-                .claim("email", user.email())
-                .claim("role", "USER")
-                .issueTime(issuedAt)
-                .expirationTime(expiresAt)
-                .jwtID(UUID.randomUUID().toString())
-                .build();
-        SignedJWT signedJwt = new SignedJWT(
-                new com.nimbusds.jose.JWSHeader(com.nimbusds.jose.JWSAlgorithm.HS256), claims);
-        signedJwt.sign(new MACSigner(jwtSecret));
-        return new AuthResponse(
-                signedJwt.serialize(),
-                "Bearer",
-                TOKEN_LIFETIME_SECONDS,
-                new UserResponse(
-                        user.id(),
-                        user.email(),
-                        user.avatar_url(),
-                        "USER",
-                        createdAt));
+    private GithubToken exchangeCode(CodeRequest request) {
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("client_id", clientId);
+        form.add("client_secret", clientSecret);
+        form.add("code", request.code());
+        form.add("redirect_uri", request.redirectUri());
+        form.add("code_verifier", request.codeVerifier());
+        return oauthClient.post()
+                .uri("/login/oauth/access_token")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(form)
+                .retrieve()
+                .body(GithubToken.class);
     }
 
     private GithubUser fetchGithubUser(String accessToken) {
@@ -167,13 +139,13 @@ public class GithubAuthController {
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                 .retrieve()
                 .body(GithubEmail[].class);
-        String verifiedEmail = selectVerifiedEmail(emails);
+        String email = primaryVerifiedEmail(emails);
         return new GithubUser(
-                profile.id(), profile.login(), profile.name(),
-                verifiedEmail, verifiedEmail != null, profile.avatar_url());
+                profile.id(), profile.login(), profile.name(), email, email != null, profile.avatar_url());
     }
 
-    private static String selectVerifiedEmail(GithubEmail[] emails) {
+    /** Only the primary email, and only if GitHub has verified it (Appendix I, 2.2). */
+    private static String primaryVerifiedEmail(GithubEmail[] emails) {
         if (emails == null) {
             return null;
         }
@@ -182,36 +154,22 @@ public class GithubAuthController {
                 return email.email();
             }
         }
-        for (GithubEmail email : emails) {
-            if (email != null && email.verified()) {
-                return email.email();
-            }
-        }
         return null;
     }
 
+    /** GitHub's token response; only the access token is used. */
     public record GithubToken(String access_token) {}
 
+    /** One entry from GitHub's {@code /user/emails}. */
     public record GithubEmail(String email, boolean primary, boolean verified) {}
 
+    /** The client's sign-in request: the result of Authorization Code + PKCE. */
     public record CodeRequest(
             @NotBlank @Size(max = 4096) String code,
             @NotBlank @Size(max = 256) String codeVerifier,
             @NotBlank @Size(max = 512) String redirectUri) {}
 
-    public record AuthResponse(
-            String token,
-            String tokenType,
-            long expiresIn,
-            UserResponse user) {}
-
-    public record UserResponse(
-            long id,
-            String email,
-            String avatar,
-            String role,
-            Instant createdAt) {}
-
+    /** The fields used from GitHub's {@code /user}, plus the email chosen from {@code /user/emails}. */
     public record GithubUser(
             Long id,
             String login,

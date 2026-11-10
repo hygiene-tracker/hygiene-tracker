@@ -1,5 +1,6 @@
 package com.hygienetracker.api.controller;
 
+import com.hygienetracker.api.auth.TestTokens;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.client.RestClient;
@@ -13,15 +14,13 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 
 class GithubAuthControllerTest {
 
-    private static final String JWT_SECRET = "test-secret-that-is-at-least-32-bytes-long";
-
     @Test
     void returnsApplicationTokenForVerifiedGithubEmail() throws Exception {
-        TestClients clients = testClients(true);
+        TestClients clients = testClients(true, true);
 
         MockMvc mockMvc = standaloneSetup(controller(clients.githubClient(), clients.oauthClient())).build();
 
-                mockMvc.perform(post("/api/auth/github/exchange")
+        mockMvc.perform(post("/api/auth/github")
                         .contentType("application/json")
                         .content("{\"code\":\"github-code\",\"codeVerifier\":\"github-verifier\",\"redirectUri\":\"hygiene-tracker://auth/github\"}"))
                 .andExpect(status().isOk())
@@ -30,29 +29,42 @@ class GithubAuthControllerTest {
                 .andExpect(jsonPath("$.expiresIn").value(3600))
                 .andExpect(jsonPath("$.user.id").value(12345))
                 .andExpect(jsonPath("$.user.email").value("student@example.com"))
-                .andExpect(jsonPath("$.user.role").value("USER"));
-
+                .andExpect(jsonPath("$.user.role").value("USER"))
+                .andExpect(jsonPath("$.user.displayName").value(org.hamcrest.Matchers.nullValue()));
     }
 
     @Test
     void rejectsGithubAccountWithoutVerifiedEmail() throws Exception {
-        TestClients clients = testClients(false);
+        TestClients clients = testClients(true, false);
 
         MockMvc mockMvc = standaloneSetup(controller(clients.githubClient(), clients.oauthClient())).build();
 
-                mockMvc.perform(post("/api/auth/github/exchange")
+        mockMvc.perform(post("/api/auth/github")
                         .contentType("application/json")
                         .content("{\"code\":\"github-code\",\"codeVerifier\":\"github-verifier\",\"redirectUri\":\"hygiene-tracker://auth/github\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("GitHub account email is not verified"));
+                .andExpect(jsonPath("$.detail").value("GitHub account email is not verified"));
+    }
 
+    @Test
+    void rejectsVerifiedEmailThatIsNotPrimary() throws Exception {
+        TestClients clients = testClients(false, true);
+
+        MockMvc mockMvc = standaloneSetup(controller(clients.githubClient(), clients.oauthClient())).build();
+
+        mockMvc.perform(post("/api/auth/github")
+                        .contentType("application/json")
+                        .content("{\"code\":\"github-code\",\"codeVerifier\":\"github-verifier\",\"redirectUri\":\"hygiene-tracker://auth/github\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("GitHub account email is not verified"));
     }
 
     private static GithubAuthController controller(RestClient githubClient, RestClient oauthClient) {
-        return new GithubAuthController(githubClient, oauthClient, "github-client-id", "github-client-secret", JWT_SECRET);
+        return new GithubAuthController(
+                githubClient, oauthClient, "github-client-id", "github-client-secret", TestTokens.service());
     }
 
-    private static TestClients testClients(boolean verifiedEmail) {
+    private static TestClients testClients(boolean primaryEmail, boolean verifiedEmail) {
         RestClient githubClient = mock(RestClient.class);
         RestClient oauthClient = mock(RestClient.class);
 
@@ -87,7 +99,7 @@ class GithubAuthControllerTest {
         when(emailHeaders.retrieve()).thenReturn(emailResponse);
         when(emailResponse.body(GithubAuthController.GithubEmail[].class))
                 .thenReturn(new GithubAuthController.GithubEmail[]{
-                        new GithubAuthController.GithubEmail("student@example.com", true, verifiedEmail)});
+                        new GithubAuthController.GithubEmail("student@example.com", primaryEmail, verifiedEmail)});
 
         return new TestClients(githubClient, oauthClient);
     }

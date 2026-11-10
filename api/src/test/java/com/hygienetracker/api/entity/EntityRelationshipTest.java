@@ -26,17 +26,17 @@ class EntityRelationshipTest {
 
         entityManager.persist(user);
 
-        // Create and save an activity type
-        ActivityType type = new ActivityType();
-        type.setName("SHOWER");
-
-        entityManager.persist(type);
+        // Use the SHOWER activity type the V2 migration seeds
+        ActivityType type = entityManager
+                .createQuery("SELECT t FROM ActivityType t WHERE t.name = 'SHOWER'", ActivityType.class)
+                .getSingleResult();
 
         // Create an activity log
         ActivityLog log = new ActivityLog();
         log.setUser(user);
         log.setType(type);
-        log.setLoggedAt(java.time.LocalDateTime.now());
+        log.setLoggedAt(java.time.Instant.now());
+        log.setLocalDate(java.time.LocalDate.now());
         log.setMinutes(15);
 
         entityManager.persist(log);
