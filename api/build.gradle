@@ -2,7 +2,6 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.1.2'
 	id 'io.spring.dependency-management' version '1.1.7'
-	id 'jacoco'
 }
 
 group = 'com.hygienetracker'
@@ -36,28 +35,10 @@ dependencies {
 
 	runtimeOnly 'com.h2database:h2' // For testing purposes to be switched to Neon Postgres in production
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-
-	// Swagger / OpenAPI documentation
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0'
-}
-
-jacoco {
-    toolVersion = "0.8.15"
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
-    finalizedBy tasks.named('jacocoTestReport')
-}
-
-tasks.named('jacocoTestReport') {
-    dependsOn tasks.named('test')
-
-    reports {
-        xml.required = true
-        csv.required = false
-        html.required = true
-    }
+	useJUnitPlatform()
 }
 
 tasks.named('jacocoTestCoverageVerification') {
