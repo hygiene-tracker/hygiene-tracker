@@ -50,7 +50,7 @@ cd api
 GOOGLE_CLIENT_IDS="your-web-client-id, your-android-client-id, your-ios-client-id" sh ./gradlew bootRun
 ```
 
-Restart Expo after changing `.env`. For an Android emulator, set `EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8080`; for a physical phone, use the computer's LAN IP address. Google Android/iOS OAuth clients must also match the app's package/bundle identifiers and signing configuration.
+Restart Expo after changing `.env`. Android emulators use `10.0.2.2` by default; for a physical phone, set `EXPO_PUBLIC_API_BASE_URL` to the computer's LAN IP address. Google Android/iOS OAuth clients must also match the app's package/bundle identifiers and signing configuration.
 
 ## Get a fresh project
 
