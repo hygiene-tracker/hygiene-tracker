@@ -3,6 +3,7 @@ package com.hygienetracker.api.config;
 import java.util.List;
 
 import com.hygienetracker.api.auth.AppTokenService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -63,10 +64,15 @@ public class SecurityConfig {
         return converter;
     }
 
+    /**
+     * Browsers only let the web client call the API from the origins listed in
+     * {@code app.cors.allowed-origins} (comma-separated; set with CORS_ALLOWED_ORIGINS).
+     */
     @Bean
-    CorsConfigurationSource corsConfigurationSource() {
+    CorsConfigurationSource corsConfigurationSource(
+            @Value("${app.cors.allowed-origins}") List<String> allowedOrigins) {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:8081"));
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(List.of(
                 HttpMethod.GET.name(),
                 HttpMethod.POST.name(),
