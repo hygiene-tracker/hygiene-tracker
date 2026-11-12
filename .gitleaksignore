@@ -1,0 +1,5 @@
+# Findings reviewed and confirmed not to be real secrets. One fingerprint per line
+# (commit:file:rule:line), so only that exact finding is ignored.
+
+# Fake JWT signing key in an old version of a test (removed in #63); never used outside tests.
+c3f2461dc4a776ddf9acd6113de81ef5e7f7be93:api/src/test/java/com/hygienetracker/api/controller/GithubAuthControllerTest.java:generic-api-key:16
