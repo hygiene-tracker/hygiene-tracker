@@ -186,6 +186,7 @@ All production values, including secrets, are set only in Render's environment s
 | [ERD](docs/erd.md) | Tables, keys, relationships and what happens on delete |
 | [OpenAPI contract](docs/openapi.yaml) | Every endpoint; lint with `npx @redocly/cli lint docs/openapi.yaml` |
 | [Error model](docs/error-model.md) | The Problem Details error shape and status codes |
+| [Threat model](docs/security.md) | Five threats and the tests, config and workflows that address them |
 | [Team agreement](docs/team_agreement.md) | PR deadline, review turnaround, team channel |
 | [Merge captains](docs/captains.md) | Who merges each sprint |
 
