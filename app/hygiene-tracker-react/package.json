@@ -36,6 +36,10 @@
     "eslint-config-expo": "~58.0.4",
     "typescript": "~6.0.3"
   },
+  "overrides": {
+    "minimatch": "11.0.1",
+    "glob": "14.0.2"
+  },
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -43,6 +47,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "test:security": "npm audit --audit-level=moderate",
     "test:api": "node --test tests/api-connectivity.test.cjs"
   },
   "private": true
