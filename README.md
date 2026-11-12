@@ -188,6 +188,7 @@ All production values, including secrets, are set only in Render's environment s
 | [Error model](docs/error-model.md) | The Problem Details error shape and status codes |
 | [Team agreement](docs/team_agreement.md) | PR deadline, review turnaround, team channel |
 | [Merge captains](docs/captains.md) | Who merges each sprint |
+| [ADRs](docs/adr/) | Architecture decisions: database, sign-in, deployment |
 
 ---
 
