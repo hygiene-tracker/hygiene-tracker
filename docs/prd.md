@@ -43,6 +43,16 @@ private and not built for hygiene, so there is no existing app for this.
 | PRD-6 | As a user, I want a leaderboard of the top 10 and the lowest-scoring active user. | **Given** 12 users who showered in the last 7 days, **when** I open the leaderboard, **then** I see the 10 highest 30-day scores in order and the lowest as "Loser". A user with no shower in 7 days is never the loser. **Given** a user logged more than 10 showers in one day, **when** I open the leaderboard, **then** they are not on it. |
 | PRD-7 | As an admin, I want to ban and unban users and revoke the admin role. | **Given** I am an admin, **when** I ban a user, **then** they disappear from the leaderboard, and **when** I unban them, **then** they reappear. **Given** an admin whose role I revoked, **when** they call an admin action, **then** they get 403 and nothing changes. |
 
+### Scoring rules (PRD-5)
+
+- Each day's 1st shower earns 10 points, the 2nd earns 5, and the 3rd and later earn nothing.
+- A day with no shower is a missed day, except today (you can still shower) and days before your
+  first shower. The k-th missed day in a row costs 2k points (−2, −4, −6, ...), with no cap.
+- The score covers the last 30 days including today, the same window as the leaderboard, and can
+  go below zero.
+- The streak counts consecutive days with a shower, ending today, or ending yesterday if you have
+  not showered yet today.
+
 ---
 
 ### Change log
@@ -50,3 +60,4 @@ private and not built for hygiene, so there is no existing app for this.
 | Date | PR | What changed and why |
 |---|---|---|
 | 2026-11-02 | `#<n>` | Initial version |
+| 2026-11-11 | #93 | Added the PRD-5 scoring rules, agreed by the team, so the score calculation has a written spec (#92) |
