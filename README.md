@@ -189,6 +189,7 @@ All production values, including secrets, are set only in Render's environment s
 | [Threat model](docs/security.md) | Five threats and the tests, config and workflows that address them |
 | [Team agreement](docs/team_agreement.md) | PR deadline, review turnaround, team channel |
 | [Merge captains](docs/captains.md) | Who merges each sprint |
+| [ADRs](docs/adr/) | Architecture decisions: database, sign-in, deployment |
 
 ---
 
