@@ -2,7 +2,8 @@
 package com.hygienetracker.api.entity;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "activity_logs")
@@ -20,8 +21,13 @@ public class ActivityLog {
     @JoinColumn(name = "type_id", nullable = false)
     private ActivityType type;
 
+    /** When the log was saved (a point in time, stored with its time zone). */
     @Column(name = "logged_at", nullable = false)
-    private LocalDateTime loggedAt;
+    private Instant loggedAt;
+
+    /** The user's calendar day for this activity; streaks and scores count days by this. */
+    @Column(name = "local_date", nullable = false)
+    private LocalDate localDate;
 
     @Column(nullable = false)
     private Integer minutes;
@@ -56,12 +62,20 @@ public class ActivityLog {
         this.type = type;
     }
 
-    public LocalDateTime getLoggedAt() {
+    public Instant getLoggedAt() {
         return loggedAt;
     }
 
-    public void setLoggedAt(LocalDateTime loggedAt) {
+    public void setLoggedAt(Instant loggedAt) {
         this.loggedAt = loggedAt;
+    }
+
+    public LocalDate getLocalDate() {
+        return localDate;
+    }
+
+    public void setLocalDate(LocalDate localDate) {
+        this.localDate = localDate;
     }
 
     public Integer getMinutes() {

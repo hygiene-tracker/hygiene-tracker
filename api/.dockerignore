@@ -1,0 +1,15 @@
+# Keep the image build small and free of secrets.
+# Build output and Gradle caches (rebuilt inside the image)
+build/
+.gradle/
+out/
+bin/
+
+# Secrets: never copy local env files into an image
+.env
+.env.*
+
+# IDE files
+.idea/
+*.iml
+.vscode/

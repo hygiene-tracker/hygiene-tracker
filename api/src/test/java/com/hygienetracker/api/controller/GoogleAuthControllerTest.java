@@ -2,6 +2,7 @@ package com.hygienetracker.api.controller;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.hygienetracker.api.auth.TestTokens;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -28,7 +29,7 @@ class GoogleAuthControllerTest {
         when(payload.getEmailVerified()).thenReturn(true);
 
         MockMvc mockMvc = standaloneSetup(
-                new GoogleAuthController(verifier, "test-secret-that-is-at-least-32-bytes-long"))
+                new GoogleAuthController(verifier, TestTokens.service()))
                 .build();
 
         mockMvc.perform(post("/api/auth/google")
@@ -40,7 +41,9 @@ class GoogleAuthControllerTest {
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
                 .andExpect(jsonPath("$.expiresIn").value(3600))
                 .andExpect(jsonPath("$.user.email").value("student@example.com"))
-                .andExpect(jsonPath("$.user.role").value("USER"));
+                .andExpect(jsonPath("$.user.role").value("USER"))
+                .andExpect(jsonPath("$.user.displayName").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.user").value(org.hamcrest.Matchers.hasKey("displayName")));
     }
 
     @Test
@@ -54,13 +57,15 @@ class GoogleAuthControllerTest {
         when(payload.getEmailVerified()).thenReturn(false);
 
         MockMvc mockMvc = standaloneSetup(
-                new GoogleAuthController(verifier, "test-secret-that-is-at-least-32-bytes-long"))
+                new GoogleAuthController(verifier, TestTokens.service()))
                 .build();
 
         mockMvc.perform(post("/api/auth/google")
                         .contentType("application/json")
                         .content("{\"idToken\":\"mock-unverified-google-id-token\"}"))
                 .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.detail").value("Google account email is not verified"));
     }
 }

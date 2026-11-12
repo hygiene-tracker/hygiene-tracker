@@ -52,6 +52,16 @@ GOOGLE_CLIENT_IDS="your-web-client-id, your-android-client-id, your-ios-client-i
 
 Restart Expo after changing `.env`. Android emulators use `10.0.2.2` by default; for a physical phone, set `EXPO_PUBLIC_API_BASE_URL` to the computer's LAN IP address. Google Android/iOS OAuth clients must also match the app's package/bundle identifiers and signing configuration.
 
+## GitHub sign-in
+
+The app signs in with GitHub using Authorization Code + PKCE (`expo-auth-session`), then sends `{code, codeVerifier, redirectUri}` to `POST /api/auth/github`. The API exchanges the code with GitHub (the client secret stays on the API), checks the account's primary verified email, and returns the app's JWT.
+
+1. In the GitHub OAuth App, register the app's redirect URI as a callback URL (`hygiene-tracker://auth/github` for the development build).
+2. Set `EXPO_PUBLIC_GITHUB_CLIENT_ID` in the app's `.env` (see `.env.example`). Only the client ID goes here; never the secret.
+3. Start the API with `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` and `JWT_SECRET` set in its environment (see `api/.env.example`).
+
+The **Continue with GitHub** button on the Explore screen needs an Android or iOS development build: Expo Go does not register the app's custom URL scheme. Web sign-in is not supported yet.
+
 ## Get a fresh project
 
 When you're ready, run:
