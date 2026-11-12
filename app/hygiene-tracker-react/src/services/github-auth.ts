@@ -17,10 +17,6 @@ export async function exchangeGithubCode(
   codeVerifier: string,
   redirectUri: string
 ): Promise<AuthResponse> {
-  if (Platform.OS === 'web') {
-    throw new Error('GitHub PKCE sign-in is currently configured for the iOS and Android app.');
-  }
-
   const response = await fetch(`${apiBaseUrl}/api/auth/github`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
