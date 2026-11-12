@@ -60,4 +60,4 @@ private and not built for hygiene, so there is no existing app for this.
 | Date | PR | What changed and why |
 |---|---|---|
 | 2026-11-02 | `#<n>` | Initial version |
-| 2026-11-11 | `#<n>` | Added the PRD-5 scoring rules, agreed by the team, so the score calculation has a written spec (#92) |
+| 2026-11-11 | #93 | Added the PRD-5 scoring rules, agreed by the team, so the score calculation has a written spec (#92) |
