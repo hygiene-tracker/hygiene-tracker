@@ -21,7 +21,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "server",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -34,7 +34,8 @@
           "imageWidth": 76
         }
       ],
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

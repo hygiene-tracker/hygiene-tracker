@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useAuth } from '@/context/auth-context';
 import { exchangeGithubCode } from '@/services/github-auth';
 import { signInWithGoogle } from '@/services/google-auth';
 
@@ -40,6 +41,7 @@ const colors = {
 };
 
 export default function LoginScreen() {
+  const { signIn } = useAuth();
   const { width } = useWindowDimensions();
   const isWide = width >= 840;
   const [googleRequest, , promptGoogleAsync] = Google.useIdTokenAuthRequest({
@@ -72,7 +74,8 @@ export default function LoginScreen() {
       const idToken = result.params.id_token;
       if (!idToken) throw new Error('Google sign-in did not return an ID token.');
 
-      await signInWithGoogle(idToken);
+      const authResponse = await signInWithGoogle(idToken);
+      await signIn(authResponse);
       router.replace('/explore');
     } catch (error: unknown) {
       setAuthError(error instanceof Error ? error.message : 'Google sign-in failed.');
@@ -92,7 +95,8 @@ export default function LoginScreen() {
       const code = result.params.code;
       if (!code) throw new Error('GitHub sign-in did not return an authorization code.');
 
-      await exchangeGithubCode(code, githubRequest.codeVerifier, githubRedirectUri);
+      const authResponse = await exchangeGithubCode(code, githubRequest.codeVerifier, githubRedirectUri);
+      await signIn(authResponse);
       router.replace('/explore');
     } catch (error: unknown) {
       setAuthError(error instanceof Error ? error.message : 'GitHub sign-in failed.');

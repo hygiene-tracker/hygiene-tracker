@@ -1,20 +1,8 @@
 import { Platform } from 'react-native';
 
-export type AuthUser = {
-  id: number;
-  email: string;
-  displayName: string | null;
-  avatar: string | null;
-  role: 'USER' | 'ADMIN';
-  createdAt: string;
-};
+import type { AuthResponse } from '@/services/auth';
 
-export type AuthResponse = {
-  token: string;
-  tokenType: 'Bearer';
-  expiresIn: number;
-  user: AuthUser;
-};
+export type { AuthResponse, AuthUser } from '@/services/auth';
 
 const defaultApiHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || `http://${defaultApiHost}:8080`;

@@ -12,7 +12,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env (copy .env.example)}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (copy .env.example)}
     ports:
-      - "5432:5432" # also lets `./gradlew bootRun` on your machine use this database
+      - "5433:5432" # also lets `./gradlew bootRun` on your machine use this database
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
