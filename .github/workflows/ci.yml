@@ -1,5 +1,5 @@
-# Builds and tests the API on every pull request and on every push to main.
-# The "API tests" job is the required status check in the main branch protection rule.
+# Builds and tests the API, and builds its Docker image, on every pull request and push to main.
+# "API tests" (and, once added, "Docker image") are required status checks on main.
 name: CI
 
 on:
@@ -38,3 +38,15 @@ jobs:
 
       - name: Build and run the tests
         run: ./gradlew build
+
+  docker-image:
+    name: Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Build the API image
+        run: docker build --tag hygiene-tracker-api ./api
