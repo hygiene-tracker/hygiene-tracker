@@ -183,6 +183,7 @@ All production values, including secrets, are set only in Render's environment s
 | Document | What it covers |
 |---|---|
 | [PRD](docs/prd.md) | Users, problem, success measures, scope, user stories and acceptance criteria |
+| [Architecture](docs/architecture.md) | Context and container diagrams and the sign-in sequence |
 | [ERD](docs/erd.md) | Tables, keys, relationships and what happens on delete |
 | [OpenAPI contract](docs/openapi.yaml) | Every endpoint; lint with `npx @redocly/cli lint docs/openapi.yaml` |
 | [Error model](docs/error-model.md) | The Problem Details error shape and status codes |
