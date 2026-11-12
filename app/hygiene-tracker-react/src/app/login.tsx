@@ -88,8 +88,17 @@ export default function LoginScreen() {
     if (!githubConfigured || !githubRequest || loadingProvider) return;
     setLoadingProvider('github');
     setAuthError(null);
+    console.info('[GitHub OAuth] Starting sign-in', {
+      redirectUri: githubRedirectUri,
+      clientConfigured: githubConfigured,
+    });
     try {
       const result = await promptGithubAsync();
+      console.info('[GitHub OAuth] Authorization result', {
+        type: result.type,
+        hasCodeVerifier: Boolean(githubRequest.codeVerifier),
+        error: result.type === 'error' ? result.error : undefined,
+      });
       if (result.type !== 'success' || !githubRequest.codeVerifier) return;
 
       const code = result.params.code;
@@ -99,6 +108,7 @@ export default function LoginScreen() {
       await signIn(authResponse);
       router.replace('/explore');
     } catch (error: unknown) {
+      console.error('[GitHub OAuth] Sign-in failed', error);
       setAuthError(error instanceof Error ? error.message : 'GitHub sign-in failed.');
     } finally {
       setLoadingProvider(null);

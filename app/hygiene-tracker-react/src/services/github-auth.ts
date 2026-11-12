@@ -17,12 +17,34 @@ export async function exchangeGithubCode(
   codeVerifier: string,
   redirectUri: string
 ): Promise<AuthResponse> {
-  const response = await fetch(`${apiBaseUrl}/api/auth/github`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, codeVerifier, redirectUri }),
+  const endpoint = `${apiBaseUrl}/api/auth/github`;
+  console.info('[GitHub OAuth] Exchanging authorization code', {
+    endpoint,
+    redirectUri,
+    // Deliberately do not log code or codeVerifier.
   });
+
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, codeVerifier, redirectUri }),
+    });
+  } catch (error: unknown) {
+    console.error('[GitHub OAuth] API request could not reach the server', {
+      endpoint,
+      error: error instanceof Error ? error.message : error,
+    });
+    throw error;
+  }
+
   const body = (await response.json().catch(() => ({}))) as GithubAuthResponse | ProblemResponse;
+  console.info('[GitHub OAuth] API response', {
+    status: response.status,
+    ok: response.ok,
+    detail: 'detail' in body ? body.detail : undefined,
+  });
   if (!response.ok) {
     throw new Error(
       'detail' in body && body.detail ? body.detail : `API request failed (${response.status})`

@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@code POST /api/auth/github}: finishes GitHub's Authorization Code + PKCE flow on the server
@@ -31,6 +33,7 @@ import org.springframework.web.client.RestClientResponseException;
 public class GithubAuthController {
 
     private static final String PATH = "/api/auth/github";
+    private static final Logger log = LoggerFactory.getLogger(GithubAuthController.class);
 
     private final RestClient githubClient;
     private final RestClient oauthClient;
@@ -102,9 +105,11 @@ public class GithubAuthController {
             // TODO: replace with the stored user from find-or-create once users are saved.
             return ResponseEntity.ok(tokens.signIn(AuthUser.newUser(user.id(), user.email())));
         } catch (RestClientResponseException exception) {
+            log.warn("GitHub OAuth returned HTTP {} from the upstream service", exception.getStatusCode());
             return Problem.response(
                     HttpStatus.BAD_REQUEST, "GitHub authorization code is invalid or expired", PATH);
         } catch (RestClientException exception) {
+            log.error("GitHub OAuth request failed before receiving a usable response", exception);
             return Problem.response(HttpStatus.SERVICE_UNAVAILABLE, "Unable to reach GitHub right now", PATH);
         }
     }
@@ -125,11 +130,11 @@ public class GithubAuthController {
     }
 
     private GithubUser fetchGithubUser(String accessToken) {
-        GithubUser profile = githubClient.get()
+        GithubProfile profile = githubClient.get()
                 .uri("/user")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                 .retrieve()
-                .body(GithubUser.class);
+                .body(GithubProfile.class);
         if (profile == null || profile.id() == null) {
             return null;
         }
@@ -169,7 +174,14 @@ public class GithubAuthController {
             @NotBlank @Size(max = 256) String codeVerifier,
             @NotBlank @Size(max = 512) String redirectUri) {}
 
-    /** The fields used from GitHub's {@code /user}, plus the email chosen from {@code /user/emails}. */
+    /** The fields returned by GitHub's {@code /user} endpoint. */
+    public record GithubProfile(
+            Long id,
+            String login,
+            String name,
+            String avatar_url) {}
+
+    /** The app's normalized authenticated user. */
     public record GithubUser(
             Long id,
             String login,
