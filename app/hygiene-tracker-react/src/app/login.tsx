@@ -1,6 +1,6 @@
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
+import { useAuthRequest } from 'expo-auth-session';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/context/auth-context';
-import { exchangeGithubCode } from '@/services/github-auth';
+import { exchangeGithubCode, githubRedirectUri } from '@/services/github-auth';
 import { signInWithGoogle } from '@/services/google-auth';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -27,10 +27,6 @@ const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 const githubClientId = process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID;
 const googleConfigured = Boolean(webClientId || androidClientId || iosClientId);
 const githubConfigured = Boolean(githubClientId);
-const githubRedirectUri = makeRedirectUri({
-  scheme: 'hygiene-tracker',
-  path: 'auth/github',
-});
 const githubDiscovery = {
   authorizationEndpoint: 'https://github.com/login/oauth/authorize',
 };

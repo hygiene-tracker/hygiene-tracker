@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 
-const apiBaseUrl = (process.env.API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
+const apiBaseUrl = (process.env.API_BASE_URL || 'https://hygiene-tracker.onrender.com').replace(/\/$/, '');
 
 test('Spring Boot API is reachable without an auth token', async () => {
   let response;

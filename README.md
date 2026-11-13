@@ -163,7 +163,7 @@ Git; never commit it.
 | `SPRING_DATASOURCE_URL`, `_USERNAME`, `_PASSWORD` | The API (`compose.yml` sets them to the `db` service) | From `.env.example` |
 | `JWT_SECRET` | Signing the API's tokens; at least 32 characters or the API won't start | Placeholder in `.env.example` |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_IDS` | Sign-in | Empty (sign-in returns 503) |
-| `CORS_ALLOWED_ORIGINS` | Web origins allowed to call the API (comma-separated) | Not set (defaults to `http://localhost:8081`) |
+| `CORS_ALLOWED_ORIGINS` | Web origins allowed to call the API (comma-separated) | `http://localhost:8081,https://hygiene-tracker-web.onrender.com` |
 | `PORT` | The port the API listens on | Not set (defaults to `8080`) |
 
 ## Deployment
@@ -174,7 +174,10 @@ Git; never commit it.
 | Web app | Render static site | `npx expo export --platform web` from `app/hygiene-tracker-react`, publishing `dist` |
 | Database | Neon (PostgreSQL 18) | Flyway creates and updates the tables when the API starts |
 
-All production values, including secrets, are set only in Render's environment settings.
+All production values, including secrets, are set only in Render's environment settings. Set
+`CORS_ALLOWED_ORIGINS` on the API service to
+`http://localhost:8081,https://hygiene-tracker-web.onrender.com` while testing the local web app;
+then redeploy or restart the API service so Spring Boot reloads the value.
 
 ---
 

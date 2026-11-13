@@ -34,6 +34,7 @@ services:
       GOOGLE_CLIENT_IDS: ${GOOGLE_CLIENT_IDS:-}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-http://localhost:8081,https://hygiene-tracker-web.onrender.com}"
     ports:
       - "8080:8080"
 

@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { makeRedirectUri } from 'expo-auth-session';
 
 import type { AuthResponse } from '@/services/google-auth';
 
@@ -6,8 +6,15 @@ export type GithubAuthResponse = AuthResponse;
 
 type ProblemResponse = { detail?: string };
 
-const defaultApiHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
-const apiBaseUrl = (process.env.EXPO_PUBLIC_API_BASE_URL || `http://${defaultApiHost}:8080`).replace(
+/** Use the callback registered in GitHub, with Expo's generated callback as the fallback. */
+export const githubRedirectUri =
+  process.env.EXPO_PUBLIC_GITHUB_REDIRECT_URI?.trim() ||
+  makeRedirectUri({
+    scheme: 'hygiene-tracker',
+    path: 'auth/github',
+  });
+
+const apiBaseUrl = (process.env.EXPO_PUBLIC_API_BASE_URL || 'https://hygiene-tracker.onrender.com').replace(
   /\/$/,
   ''
 );

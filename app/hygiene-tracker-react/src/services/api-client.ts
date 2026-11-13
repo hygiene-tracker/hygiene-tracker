@@ -1,9 +1,6 @@
-import { Platform } from 'react-native';
-
 import { clearAuth, loadAccessToken } from '@/services/auth';
 
-const defaultApiHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
-const apiBaseUrl = (process.env.EXPO_PUBLIC_API_BASE_URL || `http://${defaultApiHost}:8080`).replace(
+const apiBaseUrl = (process.env.EXPO_PUBLIC_API_BASE_URL || 'https://hygiene-tracker.onrender.com').replace(
   /\/$/,
   ''
 );
