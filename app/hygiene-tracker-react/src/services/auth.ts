@@ -35,12 +35,15 @@ function isAuthResponse(value: unknown): value is AuthResponse {
   );
 }
 
-/** Stores the API auth response in the device's platform-protected secure store. */
+function getWebStorage(): Storage | null {
+  return typeof window !== 'undefined' ? window.localStorage : null;
+}
+
+/** Stores the API auth response in secure storage or browser storage. */
 export async function saveAuth(response: AuthResponse): Promise<void> {
   if (Platform.OS === 'web') {
-    // Web has no equivalent of the native keychain/Android Keystore. Keep the
-    // token in memory rather than putting it in persistent browser storage.
     webAuth = response;
+    getWebStorage()?.setItem(AUTH_STORAGE_KEY, JSON.stringify(response));
     return;
   }
   await SecureStore.setItemAsync(AUTH_STORAGE_KEY, JSON.stringify(response));
@@ -48,7 +51,23 @@ export async function saveAuth(response: AuthResponse): Promise<void> {
 
 /** Loads the saved auth response, removing malformed data if it is encountered. */
 export async function loadAuth(): Promise<AuthResponse | null> {
-  if (Platform.OS === 'web') return webAuth;
+  if (Platform.OS === 'web') {
+    const serialized = getWebStorage()?.getItem(AUTH_STORAGE_KEY);
+    if (!serialized) return webAuth;
+
+    try {
+      const parsed: unknown = JSON.parse(serialized);
+      if (isAuthResponse(parsed)) {
+        webAuth = parsed;
+        return parsed;
+      }
+    } catch {
+      // Treat invalid stored data as a signed-out state.
+    }
+
+    await clearAuth();
+    return null;
+  }
 
   const serialized = await SecureStore.getItemAsync(AUTH_STORAGE_KEY);
   if (!serialized) return null;
@@ -67,6 +86,7 @@ export async function loadAuth(): Promise<AuthResponse | null> {
 export async function clearAuth(): Promise<void> {
   if (Platform.OS === 'web') {
     webAuth = null;
+    getWebStorage()?.removeItem(AUTH_STORAGE_KEY);
     return;
   }
   await SecureStore.deleteItemAsync(AUTH_STORAGE_KEY);

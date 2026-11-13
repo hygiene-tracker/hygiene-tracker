@@ -144,6 +144,27 @@ npm run lint
 
 With the API running, `npm run test:api` checks that the app can reach it.
 
+For the full frontend/API wiring check, run:
+
+```bash
+npm run test:connection
+```
+
+This checks the API health endpoint, CORS preflight for `http://localhost:8081`, and that the
+Google and GitHub OAuth routes are reachable. It intentionally sends invalid OAuth values, so it
+does not create an account or require a real provider login. Set `API_BASE_URL` to the hosted API
+and `FRONTEND_ORIGIN` if your local app uses a different origin:
+
+```bash
+API_BASE_URL=https://hygiene-tracker.onrender.com \
+FRONTEND_ORIGIN=http://localhost:8081 \
+npm run test:connection
+```
+
+To verify the real user-login handoff, start the web app, open the login screen, sign in with
+Google and GitHub one at a time, confirm the Explore screen shows the signed-in account, reload
+the page to verify the session persists, then use **Sign out** and verify the login screen returns.
+
 ### CI
 
 Every pull request runs the API tests and builds the Docker image in GitHub Actions, and CodeQL
