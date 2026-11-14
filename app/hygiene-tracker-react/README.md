@@ -33,10 +33,10 @@ Start the API in another terminal (`cd api && sh ./gradlew bootRun`), then run t
 npm run test:api
 ```
 
-This calls the public `GET /api/health` endpoint and does not send an auth token. It defaults to `http://localhost:8080`. To use a different API address, set `API_BASE_URL`, for example:
+This calls the public `GET /api/health` endpoint and does not send an auth token. It defaults to the hosted API at `https://hygiene-tracker.onrender.com`. To use a different API address, set `API_BASE_URL`, for example:
 
 ```bash
-API_BASE_URL=http://192.168.1.25:8080 npm run test:api
+API_BASE_URL=https://hygiene-tracker.onrender.com npm run test:api
 ```
 
 ## Google ID token handoff
@@ -50,7 +50,7 @@ cd api
 GOOGLE_CLIENT_IDS="your-web-client-id, your-android-client-id, your-ios-client-id" sh ./gradlew bootRun
 ```
 
-Restart Expo after changing `.env`. Android emulators use `10.0.2.2` by default; for a physical phone, set `EXPO_PUBLIC_API_BASE_URL` to the computer's LAN IP address. Google Android/iOS OAuth clients must also match the app's package/bundle identifiers and signing configuration.
+Restart Expo after changing `.env`. `EXPO_PUBLIC_API_BASE_URL` defaults to the hosted API. Google Android/iOS OAuth clients must also match the app's package/bundle identifiers and signing configuration.
 
 ## GitHub sign-in
 
@@ -60,7 +60,14 @@ The app signs in with GitHub using Authorization Code + PKCE (`expo-auth-session
 2. Set `EXPO_PUBLIC_GITHUB_CLIENT_ID` in the app's `.env` (see `.env.example`). Only the client ID goes here; never the secret.
 3. Start the API with `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` and `JWT_SECRET` set in its environment (see `api/.env.example`).
 
-The **Continue with GitHub** button on the Explore screen needs an Android or iOS development build: Expo Go does not register the app's custom URL scheme. Web sign-in is not supported yet.
+For web sign-in, set `EXPO_PUBLIC_GITHUB_REDIRECT_URI` to the exact callback registered in GitHub,
+such as `http://localhost:8081/auth/github` for local Expo web or
+`https://hygiene-tracker-web.onrender.com/auth/github` for the deployed site. Restart Expo after
+changing the app environment.
+
+The **Continue with GitHub** button on the Explore screen needs an Android or iOS development
+build for native sign-in: Expo Go does not register the app's custom URL scheme. Web sign-in uses
+the callback configured through `EXPO_PUBLIC_GITHUB_REDIRECT_URI`.
 
 ## Get a fresh project
 

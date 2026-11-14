@@ -86,9 +86,9 @@ class GithubAuthControllerTest {
         when(userRequest.uri("/user")).thenReturn(userHeaders);
         when(userHeaders.header("Authorization", "Bearer github-access-token")).thenReturn(userHeaders);
         when(userHeaders.retrieve()).thenReturn(userResponse);
-        when(userResponse.body(GithubAuthController.GithubUser.class))
-                .thenReturn(new GithubAuthController.GithubUser(
-                        12345L, "student", "Student", null, false, "https://github.com/avatar.png"));
+        when(userResponse.body(GithubAuthController.GithubProfile.class))
+                .thenReturn(new GithubAuthController.GithubProfile(
+                        12345L, "student", "Student", "https://github.com/avatar.png"));
 
         RestClient.RequestHeadersUriSpec emailRequest = mock(RestClient.RequestHeadersUriSpec.class);
         RestClient.RequestHeadersSpec emailHeaders = mock(RestClient.RequestHeadersSpec.class);

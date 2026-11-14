@@ -1,5 +1,7 @@
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,14 +14,46 @@ import { Collapsible } from '@/components/ui/collapsible';
 import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useAuth } from '@/context/auth-context';
+import { apiFetch } from '@/services/api-client';
 
 export default function TabTwoScreen() {
+  const router = useRouter();
   const safeAreaInsets = useSafeAreaInsets();
+  const { user, signOut } = useAuth();
+  const [connectionMessage, setConnectionMessage] = useState('Not tested yet');
+  const [checkingConnection, setCheckingConnection] = useState(false);
+  const emailPrefix = user?.email.slice(0, 3) ?? '---';
   const insets = {
     ...safeAreaInsets,
     bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
   };
   const theme = useTheme();
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.replace('/login');
+  };
+
+  const handleConnectionTest = async () => {
+    setCheckingConnection(true);
+    setConnectionMessage('Checking the API and your session…');
+    try {
+      const healthResponse = await apiFetch('/api/health');
+      if (!healthResponse.ok) throw new Error(`Health check returned ${healthResponse.status}`);
+
+      const authResponse = await apiFetch('/api/connection-test');
+      if (authResponse.status === 401) throw new Error('The API rejected the saved login token.');
+      if (!authResponse.ok) throw new Error(`Authenticated check returned ${authResponse.status}`);
+
+      const result = (await authResponse.json()) as { subject?: string };
+      setConnectionMessage(`Connected: Spring Boot accepted your JWT${result.subject ? ` (${result.subject})` : ''}.`);
+    } catch (error: unknown) {
+      setConnectionMessage(error instanceof Error ? error.message : 'Connection test failed.');
+    } finally {
+      setCheckingConnection(false);
+    }
+  };
 
   const contentPlatformStyle = Platform.select({
     android: {
@@ -42,6 +76,27 @@ export default function TabTwoScreen() {
       <ThemedView style={styles.container}>
         <ThemedView style={styles.titleContainer}>
           <ThemedText type="subtitle">Explore</ThemedText>
+          <ThemedText type="small">Email prefix: {emailPrefix}</ThemedText>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
+            onPress={() => void handleSignOut()}
+            style={({ pressed }) => [styles.logoutButton, pressed && styles.pressed]}>
+            <ThemedText style={styles.logoutText}>Sign out</ThemedText>
+          </Pressable>
+          <ThemedView type="backgroundElement" style={styles.connectionCheck}>
+            <ThemedText type="smallBold">Connection check</ThemedText>
+            <ThemedText type="small">Verifies React, the API, and your authenticated session.</ThemedText>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Test API connection"
+              disabled={checkingConnection}
+              onPress={() => void handleConnectionTest()}
+              style={({ pressed }) => [styles.connectionButton, pressed && styles.pressed, checkingConnection && styles.disabledButton]}>
+              <ThemedText style={styles.connectionButtonText}>{checkingConnection ? 'Testing…' : 'Test connection'}</ThemedText>
+            </Pressable>
+            <ThemedText type="small" accessibilityLiveRegion="polite">{connectionMessage}</ThemedText>
+          </ThemedView>
           <ThemedText style={styles.centerText} themeColor="textSecondary">
             This starter app includes example{'\n'}code to help you get started.
           </ThemedText>
@@ -175,6 +230,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.one,
     alignItems: 'center',
+  },
+  logoutButton: {
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
+    borderRadius: Spacing.five,
+    borderWidth: 1,
+    borderColor: '#D25B5B',
+  },
+  logoutText: {
+    color: '#B42318',
+    fontWeight: '700',
+  },
+  connectionCheck: {
+    width: '100%',
+    gap: Spacing.two,
+    padding: Spacing.four,
+    borderRadius: Spacing.four,
+  },
+  connectionButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
+    borderRadius: Spacing.five,
+    backgroundColor: '#2563EB',
+  },
+  connectionButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  disabledButton: {
+    opacity: 0.55,
   },
   sectionsWrapper: {
     gap: Spacing.five,
