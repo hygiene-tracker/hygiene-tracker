@@ -354,7 +354,7 @@ export default function LoginScreen() {
             </Animated.View>
           </View>
 
-          <View style={styles.footer}><Text style={styles.footerText}>© 2026 Hygiene Tracker</Text><View style={styles.footerLinks}><Text style={styles.footerText}>Jaime Serrano, Leonardo Lopez, Hugo Ruiz-Mireles</Text><View style={styles.footerDot} /><Text style={styles.footerText}>CSUMB School of Computing & Desing</Text></View></View>
+          <View style={styles.footer}><Text style={styles.footerText}>© 2026 Hygiene Tracker</Text><View style={styles.footerLinks}><Text style={styles.footerText}>Jaime Serrano, Leonardo Lopez, Hugo Ruiz-Mireles</Text><View style={styles.footerDot} /><Text style={styles.footerText}>CSUMB School of Computing & Design</Text></View></View>
         </SafeAreaView>
       </ScrollView>
     </View>
