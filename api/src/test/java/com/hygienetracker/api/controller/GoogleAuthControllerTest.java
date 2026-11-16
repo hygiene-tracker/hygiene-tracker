@@ -3,6 +3,8 @@ package com.hygienetracker.api.controller;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.hygienetracker.api.auth.TestTokens;
+import com.hygienetracker.api.auth.AccountLinker;
+import com.hygienetracker.api.auth.AuthUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -29,7 +31,7 @@ class GoogleAuthControllerTest {
         when(payload.getEmailVerified()).thenReturn(true);
 
         MockMvc mockMvc = standaloneSetup(
-                new GoogleAuthController(verifier, TestTokens.service()))
+                new GoogleAuthController(verifier, TestTokens.service(), accounts(), null, "", ""))
                 .build();
 
         mockMvc.perform(post("/api/auth/google")
@@ -57,7 +59,7 @@ class GoogleAuthControllerTest {
         when(payload.getEmailVerified()).thenReturn(false);
 
         MockMvc mockMvc = standaloneSetup(
-                new GoogleAuthController(verifier, TestTokens.service()))
+                new GoogleAuthController(verifier, TestTokens.service(), accounts(), null, "", ""))
                 .build();
 
         mockMvc.perform(post("/api/auth/google")
@@ -67,5 +69,12 @@ class GoogleAuthControllerTest {
                 .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.detail").value("Google account email is not verified"));
+    }
+
+    private static AccountLinker accounts() {
+        AccountLinker accounts = mock(AccountLinker.class);
+        when(accounts.findOrCreate(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(AuthUser.newUser(123L, "student@example.com"));
+        return accounts;
     }
 }

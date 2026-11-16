@@ -3,6 +3,7 @@ package com.hygienetracker.api.entity;
 import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Instant;
 
 @Entity
 @Table(
@@ -28,6 +29,9 @@ public class User {
     @Column(nullable = false)
     private String role = "USER";
 
+    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    private Instant createdAt;
+
     @OneToMany(
         mappedBy = "user",
         cascade = CascadeType.ALL,
@@ -40,6 +44,10 @@ public class User {
 
     public Long getId() {
         return id;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 
     public String getEmail() {

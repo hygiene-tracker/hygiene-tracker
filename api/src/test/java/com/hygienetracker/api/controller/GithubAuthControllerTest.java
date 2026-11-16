@@ -1,6 +1,9 @@
 package com.hygienetracker.api.controller;
 
 import com.hygienetracker.api.auth.TestTokens;
+import com.hygienetracker.api.auth.AccountLinker;
+import com.hygienetracker.api.auth.AuthUser;
+import com.hygienetracker.api.auth.ProviderIdentity;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.client.RestClient;
@@ -60,8 +63,11 @@ class GithubAuthControllerTest {
     }
 
     private static GithubAuthController controller(RestClient githubClient, RestClient oauthClient) {
+        AccountLinker accounts = mock(AccountLinker.class);
+        when(accounts.findOrCreate(org.mockito.ArgumentMatchers.any(ProviderIdentity.class)))
+                .thenReturn(AuthUser.newUser(12345L, "student@example.com"));
         return new GithubAuthController(
-                githubClient, oauthClient, "github-client-id", "github-client-secret", TestTokens.service());
+                githubClient, oauthClient, "github-client-id", "github-client-secret", TestTokens.service(), accounts);
     }
 
     private static TestClients testClients(boolean primaryEmail, boolean verifiedEmail) {
@@ -86,9 +92,9 @@ class GithubAuthControllerTest {
         when(userRequest.uri("/user")).thenReturn(userHeaders);
         when(userHeaders.header("Authorization", "Bearer github-access-token")).thenReturn(userHeaders);
         when(userHeaders.retrieve()).thenReturn(userResponse);
-        when(userResponse.body(GithubAuthController.GithubUser.class))
-                .thenReturn(new GithubAuthController.GithubUser(
-                        12345L, "student", "Student", null, false, "https://github.com/avatar.png"));
+        when(userResponse.body(GithubAuthController.GithubProfile.class))
+                .thenReturn(new GithubAuthController.GithubProfile(
+                        12345L, "student", "Student", "https://github.com/avatar.png"));
 
         RestClient.RequestHeadersUriSpec emailRequest = mock(RestClient.RequestHeadersUriSpec.class);
         RestClient.RequestHeadersSpec emailHeaders = mock(RestClient.RequestHeadersSpec.class);

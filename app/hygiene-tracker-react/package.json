@@ -15,6 +15,7 @@
     "expo-image": "~58.0.18",
     "expo-linking": "~58.0.16",
     "expo-router": "~58.0.30",
+    "expo-secure-store": "~58.0.3",
     "expo-splash-screen": "~58.0.13",
     "expo-status-bar": "~58.0.4",
     "expo-symbols": "~58.0.4",
@@ -32,7 +33,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
-    "eslint": "^10.14.0",
+    "eslint": "^9.39.5",
     "eslint-config-expo": "~58.0.4",
     "typescript": "~6.0.3"
   },
@@ -43,12 +44,13 @@
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
     "test:security": "npm audit --audit-level=moderate",
-    "test:api": "node --test tests/api-connectivity.test.cjs"
+    "test:api": "node --test tests/api-connectivity.test.cjs",
+    "test:connection": "node --test tests/api-connectivity.test.cjs"
   },
   "private": true
 }
