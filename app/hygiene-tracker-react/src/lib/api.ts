@@ -1,6 +1,8 @@
 import { tokenStore } from '@/lib/token-store';
 
-const apiBaseUrl = (process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
+// Production builds run on Render and call the Render API unless a local Docker URL is supplied
+// through EXPO_PUBLIC_API_BASE_URL.
+const apiBaseUrl = (process.env.EXPO_PUBLIC_API_BASE_URL || 'https://hygiene-tracker.onrender.com').replace(/\/$/, '');
 
 export class ApiError extends Error {
   readonly status: number;
