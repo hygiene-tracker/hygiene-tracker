@@ -11,7 +11,7 @@ export const githubRedirectUri =
   process.env.EXPO_PUBLIC_GITHUB_REDIRECT_URI?.trim() ||
   makeRedirectUri({
     scheme: 'hygiene-tracker',
-    path: 'auth/github',
+    path: 'auth',
   });
 
 const apiBaseUrl = (process.env.EXPO_PUBLIC_API_BASE_URL || 'https://hygiene-tracker.onrender.com').replace(

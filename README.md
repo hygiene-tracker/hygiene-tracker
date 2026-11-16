@@ -111,7 +111,8 @@ in the app's `.env` to your computer's LAN address.
 Sign-in needs OAuth credentials. Without them, the sign-in endpoints return `503` and everything
 else works.
 
-- **API** (root `.env`): `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_IDS`.
+- **API** (root `.env`): `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_IDS`,
+  `GOOGLE_WEB_CLIENT_ID`, and `GOOGLE_WEB_CLIENT_SECRET` for the local web code exchange.
 - **App** (`app/hygiene-tracker-react/.env`): the `EXPO_PUBLIC_*` client IDs. These are public;
   client **secrets** go only in the API's environment.
 

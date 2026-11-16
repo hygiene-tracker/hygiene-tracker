@@ -24,6 +24,27 @@ export async function signInWithGoogle(idToken: string): Promise<AuthResponse> {
   return body;
 }
 
+export async function exchangeGoogleCode(
+  code: string,
+  codeVerifier: string,
+  redirectUri: string,
+): Promise<AuthResponse> {
+  const response = await fetch(`${apiBaseUrl.replace(/\/$/, '')}/api/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code, codeVerifier, redirectUri }),
+  });
+
+  const body = (await response.json().catch(() => ({}))) as AuthResponse | ProblemResponse;
+  if (!response.ok) {
+    throw new Error('detail' in body && body.detail ? body.detail : `API request failed (${response.status})`);
+  }
+  if (!isAuthResponse(body)) {
+    throw new Error('The API returned an unexpected Google auth response');
+  }
+  return body;
+}
+
 type ProblemResponse = {
   detail?: string;
 };

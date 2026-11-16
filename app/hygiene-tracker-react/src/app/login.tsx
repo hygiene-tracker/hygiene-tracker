@@ -1,6 +1,6 @@
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import { useAuthRequest } from 'expo-auth-session';
+import { makeRedirectUri, useAuthRequest, useAutoDiscovery } from 'expo-auth-session';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -13,12 +13,13 @@ import {
   Image,
   useWindowDimensions,
   View,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/context/auth-context';
 import { exchangeGithubCode, githubRedirectUri } from '@/services/github-auth';
-import { signInWithGoogle } from '@/services/google-auth';
+import { exchangeGoogleCode, signInWithGoogle } from '@/services/google-auth';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -26,11 +27,14 @@ const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const androidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 const githubClientId = process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID;
-const googleConfigured = Boolean(webClientId || androidClientId || iosClientId);
+const googleConfigured = Platform.OS === 'web'
+  ? Boolean(webClientId)
+  : Boolean(webClientId || androidClientId || iosClientId);
 const githubConfigured = Boolean(githubClientId);
 const githubDiscovery = {
   authorizationEndpoint: 'https://github.com/login/oauth/authorize',
 };
+const googleRedirectUri = makeRedirectUri({ scheme: 'hygiene-tracker', path: 'auth' });
 // Add, remove, or edit messages here. One message is selected randomly per visit.
 const loginEyebrowMessages = [
   'Time to shower, you punk rocker',
@@ -156,6 +160,16 @@ export default function LoginScreen() {
     scopes: ['openid', 'email', 'profile'],
     selectAccount: true,
   });
+  const googleDiscovery = useAutoDiscovery('https://accounts.google.com');
+  const [googleWebRequest, , promptGoogleWebAsync] = useAuthRequest(
+    {
+      clientId: webClientId || 'missing.apps.googleusercontent.com',
+      scopes: ['openid', 'email', 'profile'],
+      redirectUri: googleRedirectUri,
+      usePKCE: true,
+    },
+    googleDiscovery,
+  );
   const [githubRequest, , promptGithubAsync] = useAuthRequest(
     {
       clientId: githubClientId || 'missing-github-client-id',
@@ -169,17 +183,26 @@ export default function LoginScreen() {
   const [authError, setAuthError] = useState<string | null>(null);
 
   const handleGoogleSignIn = async () => {
-    if (!googleConfigured || !googleRequest || loadingProvider) return;
+    if (!googleConfigured || loadingProvider) return;
     setLoadingProvider('google');
     setAuthError(null);
     try {
-      const result = await promptGoogleAsync();
-      if (result.type !== 'success') return;
-
-      const idToken = result.params.id_token;
-      if (!idToken) throw new Error('Google sign-in did not return an ID token.');
-
-      const authResponse = await signInWithGoogle(idToken);
+      let authResponse;
+      if (Platform.OS === 'web') {
+        if (!googleWebRequest) return;
+        const result = await promptGoogleWebAsync();
+        if (result.type !== 'success' || !googleWebRequest.codeVerifier) return;
+        const code = result.params.code;
+        if (!code) throw new Error('Google sign-in did not return an authorization code.');
+        authResponse = await exchangeGoogleCode(code, googleWebRequest.codeVerifier, googleRedirectUri);
+      } else {
+        if (!googleRequest) return;
+        const result = await promptGoogleAsync();
+        if (result.type !== 'success') return;
+        const idToken = result.params.id_token;
+        if (!idToken) throw new Error('Google sign-in did not return an ID token.');
+        authResponse = await signInWithGoogle(idToken);
+      }
       await signIn(authResponse);
       router.replace('/explore');
     } catch (error: unknown) {

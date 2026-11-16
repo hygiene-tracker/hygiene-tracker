@@ -39,9 +39,12 @@ This calls the public `GET /api/health` endpoint and does not send an auth token
 API_BASE_URL=https://hygiene-tracker.onrender.com npm run test:api
 ```
 
-## Google ID token handoff
+## Google web authorization-code handoff
 
-Copy `.env.example` to `.env` and set the Google Web, Android, and iOS OAuth client IDs for your app. The Explore tab has a **Continue with Google** test button: after Google returns an ID token, the app posts it to `POST /api/auth/google` and shows the identity returned by Spring Boot.
+Copy `.env.example` to `.env` and set the Google Web client ID for the local web app. The web
+login uses Authorization Code + PKCE and posts `{code, codeVerifier, redirectUri}` to
+`POST /api/auth/google`; Spring exchanges the code using the web client secret. Native builds
+may continue using the ID-token path.
 
 Configure Spring Boot to accept those same client IDs as token audiences, separated by commas:
 
@@ -56,13 +59,13 @@ Restart Expo after changing `.env`. `EXPO_PUBLIC_API_BASE_URL` defaults to the h
 
 The app signs in with GitHub using Authorization Code + PKCE (`expo-auth-session`), then sends `{code, codeVerifier, redirectUri}` to `POST /api/auth/github`. The API exchanges the code with GitHub (the client secret stays on the API), checks the account's primary verified email, and returns the app's JWT.
 
-1. In the GitHub OAuth App, register the app's redirect URI as a callback URL (`hygiene-tracker://auth/github` for the development build).
+1. In the GitHub OAuth App, register the app's redirect URI as a callback URL (`hygiene-tracker://auth` for the development build).
 2. Set `EXPO_PUBLIC_GITHUB_CLIENT_ID` in the app's `.env` (see `.env.example`). Only the client ID goes here; never the secret.
 3. Start the API with `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` and `JWT_SECRET` set in its environment (see `api/.env.example`).
 
 For web sign-in, set `EXPO_PUBLIC_GITHUB_REDIRECT_URI` to the exact callback registered in GitHub,
-such as `http://localhost:8081/auth/github` for local Expo web or
-`https://hygiene-tracker-web.onrender.com/auth/github` for the deployed site. Restart Expo after
+such as `http://localhost:8081/auth` for local Expo web or
+`https://hygiene-tracker-web.onrender.com/auth` for the deployed site. Restart Expo after
 changing the app environment.
 
 The **Continue with GitHub** button on the Explore screen needs an Android or iOS development

@@ -1,7 +1,8 @@
 package com.hygienetracker.api.controller;
 
 import com.hygienetracker.api.auth.AppTokenService;
-import com.hygienetracker.api.auth.AuthUser;
+import com.hygienetracker.api.auth.AccountLinker;
+import com.hygienetracker.api.auth.ProviderIdentity;
 import com.hygienetracker.api.error.Problem;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -40,13 +41,15 @@ public class GithubAuthController {
     private final String clientId;
     private final String clientSecret;
     private final AppTokenService tokens;
+    private final AccountLinker accounts;
 
     @Autowired
     public GithubAuthController(
             RestClient.Builder restClientBuilder,
             @Value("${github.oauth.client-id:}") String clientId,
             @Value("${github.oauth.client-secret:}") String clientSecret,
-            AppTokenService tokens) {
+            AppTokenService tokens,
+            AccountLinker accounts) {
         this(
                 restClientBuilder.clone()
                         .baseUrl("https://api.github.com")
@@ -60,7 +63,8 @@ public class GithubAuthController {
                         .build(),
                 clientId,
                 clientSecret,
-                tokens);
+                tokens,
+                accounts);
     }
 
     GithubAuthController(
@@ -68,12 +72,14 @@ public class GithubAuthController {
             RestClient oauthClient,
             String clientId,
             String clientSecret,
-            AppTokenService tokens) {
+            AppTokenService tokens,
+            AccountLinker accounts) {
         this.githubClient = githubClient;
         this.oauthClient = oauthClient;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.tokens = tokens;
+        this.accounts = accounts;
     }
 
     /**
@@ -102,8 +108,13 @@ public class GithubAuthController {
                 return Problem.response(HttpStatus.BAD_REQUEST, "GitHub account email is not verified", PATH);
             }
 
-            // TODO: replace with the stored user from find-or-create once users are saved.
-            return ResponseEntity.ok(tokens.signIn(AuthUser.newUser(user.id(), user.email())));
+            ProviderIdentity identity = new ProviderIdentity(
+                    "GITHUB", String.valueOf(user.id()), user.email(), true);
+            return ResponseEntity.ok(tokens.signIn(accounts.findOrCreate(identity)));
+        } catch (AccountLinker.UnverifiedEmailException exception) {
+            return Problem.response(HttpStatus.BAD_REQUEST, exception.getMessage(), PATH);
+        } catch (AccountLinker.EmailConflictException exception) {
+            return Problem.response(HttpStatus.CONFLICT, exception.getMessage(), PATH);
         } catch (RestClientResponseException exception) {
             log.warn("GitHub OAuth returned HTTP {} from the upstream service", exception.getStatusCode());
             return Problem.response(

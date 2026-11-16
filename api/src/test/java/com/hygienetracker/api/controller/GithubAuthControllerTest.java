@@ -1,6 +1,9 @@
 package com.hygienetracker.api.controller;
 
 import com.hygienetracker.api.auth.TestTokens;
+import com.hygienetracker.api.auth.AccountLinker;
+import com.hygienetracker.api.auth.AuthUser;
+import com.hygienetracker.api.auth.ProviderIdentity;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.client.RestClient;
@@ -60,8 +63,11 @@ class GithubAuthControllerTest {
     }
 
     private static GithubAuthController controller(RestClient githubClient, RestClient oauthClient) {
+        AccountLinker accounts = mock(AccountLinker.class);
+        when(accounts.findOrCreate(org.mockito.ArgumentMatchers.any(ProviderIdentity.class)))
+                .thenReturn(AuthUser.newUser(12345L, "student@example.com"));
         return new GithubAuthController(
-                githubClient, oauthClient, "github-client-id", "github-client-secret", TestTokens.service());
+                githubClient, oauthClient, "github-client-id", "github-client-secret", TestTokens.service(), accounts);
     }
 
     private static TestClients testClients(boolean primaryEmail, boolean verifiedEmail) {
