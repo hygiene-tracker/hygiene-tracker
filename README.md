@@ -11,11 +11,12 @@ or Google. Admins moderate the leaderboard.
 - [Tech stack](#tech-stack)
 - [Repository layout](#repository-layout)
 - [Prerequisites](#prerequisites)
+  - [Commands on each OS](#commands-on-each-os)
 - [Run it locally](#run-it-locally)
   - [1. Start the API and database](#1-start-the-api-and-database)
   - [2. Start the web app](#2-start-the-web-app)
-  - [3. Android (optional)](#3-android-optional)
-  - [4. Sign-in (optional)](#4-sign-in-optional)
+  - [3. Android (optional for a local run)](#3-android-optional-for-a-local-run)
+  - [4. Sign-in (optional for a local run)](#4-sign-in-optional-for-a-local-run)
   - [5. Stop the stack](#5-stop-the-stack)
 - [Run the tests](#run-the-tests)
   - [API tests](#api-tests)
@@ -73,10 +74,21 @@ compose.yml   Local stack: API + PostgreSQL
 | [Docker Desktop](https://docs.docker.com/get-docker/) (or Docker Engine with Compose) | Compose v2 or newer | Running the stack, and the API tests (Testcontainers) |
 | JDK | 21 | Running the API tests |
 | Node.js | 20 or newer | The Expo app |
-| Android Studio | Latest, with Android SDK Platform 36 | The Android app (optional) |
+| Android Studio | Latest, with Android SDK Platform 36 | The Android app (optional for a local run) |
 
-On Windows, use the same commands from WSL or Git Bash, or replace `./gradlew` with
-`gradlew.bat`.
+### Commands on each OS
+
+The commands in this README are for a Bash shell: the terminal on macOS and Linux, or **Git Bash**
+or **WSL** on Windows. Start Docker Desktop before running them (on Linux, Docker Engine with the
+Compose plugin; add your user to the `docker` group or use `sudo`).
+
+In Windows **PowerShell**, these commands differ:
+
+| Bash | PowerShell |
+|---|---|
+| `cp .env.example .env` | `Copy-Item .env.example .env` |
+| `./gradlew build` | `.\gradlew.bat build` |
+| `API_BASE_URL=https://... npm run test:connection` | `$env:API_BASE_URL="https://..."; npm run test:connection` |
 
 ---
 
@@ -118,11 +130,12 @@ npx expo start --web
 
 The web app opens at <http://localhost:8081> and talks to the API at `http://localhost:8080`.
 
-### 3. Android (optional)
+### 3. Android (optional for a local run)
 
 Android needs Android Studio and a development build (Expo Go cannot register the app's sign-in
-redirect). With an emulator running or a phone connected over USB, from
-`app/hygiene-tracker-react`:
+redirect). If Expo reports "Failed to resolve the Android SDK path", set `ANDROID_HOME` to your
+SDK folder (Android Studio, Settings, Android SDK shows the path). With an emulator running or a
+phone connected over USB, from `app/hygiene-tracker-react`:
 
 ```bash
 npx expo run:android
@@ -132,7 +145,7 @@ The first build takes several minutes; after that, `npx expo start` and press `a
 emulator reaches the API at `10.0.2.2:8080`; for a physical phone, set `EXPO_PUBLIC_API_BASE_URL`
 in the app's `.env` to your computer's LAN address.
 
-### 4. Sign-in (optional)
+### 4. Sign-in (optional for a local run)
 
 You don't need sign-in to run the stack or the tests. Without OAuth credentials, the sign-in
 endpoints return `503` and everything else works. To try sign-in, use the
@@ -199,7 +212,7 @@ npm run test:connection
 
 ### Sign-in check (team only)
 
-Team members with local OAuth credentials ([step 4](#4-sign-in-optional)) can check the full
+Team members with local OAuth credentials ([step 4](#4-sign-in-optional-for-a-local-run)) can check the full
 sign-in flow: start the web app, open the login screen, sign in with Google and GitHub one at a
 time, confirm the Explore screen shows the signed-in account, reload the page to check the session
 persists, then use **Sign out** and check the login screen returns.
