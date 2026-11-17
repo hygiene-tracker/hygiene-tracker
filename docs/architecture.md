@@ -1,7 +1,7 @@
 # Architecture
 
 How Hygiene Tracker fits together, as C4 context and container diagrams, plus the sign-in
-sequence. Decisions behind it are in [`docs/adr/`](adr/).
+flow. Decisions behind it are in [`docs/adr/`](adr/).
 
 ## 1. Context
 
@@ -59,35 +59,46 @@ flowchart TB
 | REST API | Spring Boot 4, Spring Security (OAuth2 Resource Server), Docker | Render web service |
 | Database | PostgreSQL 18, Flyway migrations | Neon |
 
-## 3. Sign-in sequence
+## 3. Sign-in flow
 
-The app signs in with the provider, and the API exchanges the result for its own JWT
-([ADR-0002](adr/0002-backend-token-exchange.md)). GitHub is shown; Google is the same except the
-app sends a Google ID token to `POST /api/auth/google`, which the API verifies directly.
+How sign-in works from the button to a protected request, and where each error comes from
+([error model](error-model.md)). The app signs in with GitHub or Google, and the API exchanges the
+result for its own JWT ([ADR-0002](adr/0002-backend-token-exchange.md)). Which part talks to which
+is in the [container diagram](#2-containers).
 
 ```mermaid
-sequenceDiagram
-    actor U as User
-    participant C as App (web or Android)
-    participant GH as GitHub
-    participant API as REST API
-    participant DB as Database
+flowchart TD
+    start([User taps Sign in]) --> provider{Choose provider}
 
-    U->>C: Tap "Sign in with GitHub"
-    C->>GH: Authorize (client ID, PKCE code challenge)
-    GH-->>U: Sign in and approve
-    GH-->>C: Redirect with authorization code
-    C->>API: POST /api/auth/github {code, codeVerifier, redirectUri}
-    API->>GH: Exchange code + verifier + client secret for an access token
-    GH-->>API: Access token
-    API->>GH: Get primary verified email
-    GH-->>API: Email
-    API->>DB: Find or create the user and identity
-    API-->>C: 200 {token (our JWT, 1 hour), user}
-    C->>API: Later requests with Authorization: Bearer <JWT>
-    API-->>C: 401 if the token is missing, expired or invalid
+    provider --> github[GitHub: Authorization Code + PKCE]
+    github --> githubExchange[API exchanges code + verifier with GitHub]
+    githubExchange --> email[API gets the verified email]
+
+    provider --> google[Google sign-in]
+    google --> clientType{Client type}
+    clientType -->|Web| googleCode[App sends authorization code;<br/>API exchanges it with Google]
+    clientType -->|Android| googleToken[App sends Google ID token]
+    googleCode --> googleVerify[API verifies the Google ID token]
+    googleToken --> googleVerify
+    googleVerify --> email
+
+    githubExchange -. code invalid or expired .-> badRequest[400 Bad Request]
+    googleVerify -. token invalid .-> badRequest
+    githubExchange -. provider unreachable or not configured .-> unavailable[503 Service Unavailable]
+    googleVerify -. provider unreachable or not configured .-> unavailable
+
+    email --> linked{Identity already linked?}
+    linked -->|Yes| jwt
+    linked -->|No| verified{Verified email?}
+    verified -->|No| badRequest
+    verified -->|Yes| conflict{Email registered with<br/>the other provider?}
+    conflict -->|Yes| conflictError[409 Conflict<br/>no account created]
+    conflict -->|No| create[Create user and identity]
+    create --> jwt[API issues JWT, 1-hour lifetime]
+
+    jwt --> store[App stores the JWT]
+    store --> request[App sends Authorization: Bearer JWT]
+    request --> valid{JWT valid and unexpired?}
+    valid -->|No| unauthorized[401 Unauthorized]
+    valid -->|Yes| resource[API serves the request]
 ```
-
-Unverified emails get 400, and an email already registered with the other provider gets 409
-([error model](error-model.md)). Saving users on sign-in (the "find or create" step) is
-[#87](https://github.com/hygiene-tracker/hygiene-tracker/issues/87).
