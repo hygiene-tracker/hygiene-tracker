@@ -63,15 +63,15 @@ export default function LoginScreen() {
   const [eyebrowMessage] = useState(
     () => loginEyebrowMessages[Math.floor(Math.random() * loginEyebrowMessages.length)]
   );
-  const pulse = useRef(new Animated.Value(0)).current;
-  const formEntrance = useRef(new Animated.Value(0)).current;
-  const githubEntrance = useRef(new Animated.Value(0)).current;
-  const googleEntrance = useRef(new Animated.Value(0)).current;
-  const githubScale = useRef(new Animated.Value(1)).current;
-  const googleScale = useRef(new Animated.Value(1)).current;
+  const [pulse] = useState(() => new Animated.Value(0));
+  const [formEntrance] = useState(() => new Animated.Value(0));
+  const [githubEntrance] = useState(() => new Animated.Value(0));
+  const [googleEntrance] = useState(() => new Animated.Value(0));
+  const [githubScale] = useState(() => new Animated.Value(1));
+  const [googleScale] = useState(() => new Animated.Value(1));
   const githubHovered = useRef(false);
   const googleHovered = useRef(false);
-  const waterfallProgress = useRef(waterfallBubbleConfigs.map(() => new Animated.Value(0))).current;
+  const [waterfallProgress] = useState(() => waterfallBubbleConfigs.map(() => new Animated.Value(0)));
 
   useEffect(() => {
     const pulseAnimation = Animated.loop(

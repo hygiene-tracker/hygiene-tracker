@@ -5,8 +5,37 @@ each shower (duration and products used), keep a daily streak and a score that r
 and penalizes skipped days, and compete on a leaderboard of 30-day scores. Sign-in is with GitHub
 or Google. Admins moderate the leaderboard.
 
-**Live URLs** (Render free tier: the API sleeps after 15 idle minutes, so the first request can
-take about a minute):
+## Contents
+
+- [Live URLs](#live-urls)
+- [Tech stack](#tech-stack)
+- [Repository layout](#repository-layout)
+- [Prerequisites](#prerequisites)
+  - [Commands on each OS](#commands-on-each-os)
+- [Run it locally](#run-it-locally)
+  - [1. Start the API and database](#1-start-the-api-and-database)
+  - [2. Start the web app](#2-start-the-web-app)
+  - [3. Android (optional for a local run)](#3-android-optional-for-a-local-run)
+  - [4. Sign-in (optional for a local run)](#4-sign-in-optional-for-a-local-run)
+  - [5. Stop the stack](#5-stop-the-stack)
+- [Run the tests](#run-the-tests)
+  - [API tests](#api-tests)
+  - [App lint](#app-lint)
+  - [API connection check](#api-connection-check)
+  - [Sign-in check (team only)](#sign-in-check-team-only)
+  - [CI](#ci)
+- [Configuration](#configuration)
+- [Deployment](#deployment)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [Team](#team)
+
+---
+
+## Live URLs
+
+Render's free tier puts the API to sleep after 15 idle minutes, so the first request can take
+a few minutes.
 
 | What | URL |
 |---|---|
@@ -14,8 +43,6 @@ take about a minute):
 | API | <https://hygiene-tracker.onrender.com> |
 | API health | <https://hygiene-tracker.onrender.com/actuator/health> |
 | API docs (Swagger UI) | <https://hygiene-tracker.onrender.com/swagger-ui.html> |
-
----
 
 ## Tech stack
 
@@ -45,12 +72,23 @@ compose.yml   Local stack: API + PostgreSQL
 | Tool | Version | Needed for |
 |---|---|---|
 | [Docker Desktop](https://docs.docker.com/get-docker/) (or Docker Engine with Compose) | Compose v2 or newer | Running the stack, and the API tests (Testcontainers) |
-| JDK | 21 | Running the API tests or the API outside Docker |
+| JDK | 21 | Running the API tests |
 | Node.js | 20 or newer | The Expo app |
-| Android Studio | Latest, with Android SDK Platform 36 | The Android app (development build) |
+| Android Studio | Latest, with Android SDK Platform 36 | The Android app (optional for a local run) |
 
-On Windows, use the same commands from WSL or Git Bash, or replace `./gradlew` with
-`gradlew.bat`.
+### Commands on each OS
+
+The commands in this README are for a Bash shell: the terminal on macOS and Linux, or **Git Bash**
+or **WSL** on Windows. Start Docker Desktop before running them (on Linux, Docker Engine with the
+Compose plugin; add your user to the `docker` group or use `sudo`).
+
+In Windows **PowerShell**, these commands differ:
+
+| Bash | PowerShell |
+|---|---|
+| `cp .env.example .env` | `Copy-Item .env.example .env` |
+| `./gradlew build` | `.\gradlew.bat build` |
+| `API_BASE_URL=https://... npm run test:connection` | `$env:API_BASE_URL="https://..."; npm run test:connection` |
 
 ---
 
@@ -76,15 +114,12 @@ When the API logs `Started ApiApplication`, check it:
 Flyway creates the database tables on the first start. The database keeps its data between runs
 in a Docker volume.
 
-To stop: `Ctrl+C`, then `docker compose down`. To also delete the local database:
-`docker compose down -v`.
-
 If `docker compose up` fails with "Set POSTGRES_PASSWORD in .env", the `cp .env.example .env`
 step was skipped.
 
-### 2. Start the app
+### 2. Start the web app
 
-In a second terminal:
+Leave the stack running and open a second terminal:
 
 ```bash
 cd app/hygiene-tracker-react
@@ -95,35 +130,48 @@ npx expo start --web
 
 The web app opens at <http://localhost:8081> and talks to the API at `http://localhost:8080`.
 
-For **Android**, sign-in needs a development build (Expo Go cannot register the app's sign-in
-redirect). With an emulator running or a phone connected over USB:
+### 3. Android (optional for a local run)
+
+Android needs Android Studio and a development build (Expo Go cannot register the app's sign-in
+redirect). If Expo reports "Failed to resolve the Android SDK path", set `ANDROID_HOME` to your
+SDK folder (Android Studio, Settings, Android SDK shows the path). With an emulator running or a
+phone connected over USB, from `app/hygiene-tracker-react`:
 
 ```bash
 npx expo run:android
 ```
 
-The first build takes several minutes; after that, `npx expo start` and press `a`. The Android
-emulator reaches the API at `10.0.2.2:8080`; for a physical phone, set `EXPO_PUBLIC_API_BASE_URL`
-in the app's `.env` to your computer's LAN address.
+The first build takes several minutes; after that, `npx expo start` and press `a`.
 
-### 3. Sign in with GitHub or Google (optional locally)
+On Android, `localhost` is the device itself, so change `EXPO_PUBLIC_API_BASE_URL` in the app's
+`.env` first: `http://10.0.2.2:8080` for the emulator, or `http://<your computer's LAN IP>:8080`
+for a physical phone.
 
-Sign-in needs OAuth credentials. Without them, the sign-in endpoints return `503` and everything
-else works.
+### 4. Sign-in (optional for a local run)
+
+You don't need sign-in to run the stack or the tests. Without OAuth credentials, the sign-in
+endpoints return `503` and everything else works. To try sign-in, use the
+[live web app](https://hygiene-tracker-web.onrender.com).
+
+The OAuth client secrets are private to the team and are never shared. Team members set up local
+sign-in with these values (secrets go only in the API's environment):
 
 - **API** (root `.env`): `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_IDS`,
-  `GOOGLE_WEB_CLIENT_ID`, and `GOOGLE_WEB_CLIENT_SECRET` for the local web code exchange.
-- **App** (`app/hygiene-tracker-react/.env`): the `EXPO_PUBLIC_*` client IDs. These are public;
-  client **secrets** go only in the API's environment.
+  `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_WEB_CLIENT_SECRET`.
+- **App** (`app/hygiene-tracker-react/.env`): the public `EXPO_PUBLIC_*` client IDs.
 
-Ask the team for the values, and see the [app README](app/hygiene-tracker-react/README.md) for the
-redirect URIs to register.
+See the [app README](app/hygiene-tracker-react/README.md) for the redirect URIs to register.
+
+### 5. Stop the stack
+
+Press `Ctrl+C` in each terminal, then from the repository root run `docker compose down`. To also
+delete the local database: `docker compose down -v`.
 
 ---
 
 ## Run the tests
 
-### API
+### API tests
 
 Docker must be running: the tests start a throwaway PostgreSQL 18 with Testcontainers.
 
@@ -136,25 +184,28 @@ This compiles, runs every test, writes the coverage report to
 `api/build/reports/jacoco/test/html/index.html`, and fails if the service layer is below 70%
 coverage.
 
-### App
+### App lint
 
 ```bash
 cd app/hygiene-tracker-react
 npm run lint
 ```
 
-With the API running, `npm run test:api` checks that the app can reach it.
+### API connection check
 
-For the full frontend/API wiring check, run:
+With the API running (step 1), from `app/hygiene-tracker-react`:
 
 ```bash
 npm run test:connection
 ```
 
 This checks the API health endpoint, CORS preflight for `http://localhost:8081`, and that the
-Google and GitHub OAuth routes are reachable. It intentionally sends invalid OAuth values, so it
-does not create an account or require a real provider login. Set `API_BASE_URL` to the hosted API
-and `FRONTEND_ORIGIN` if your local app uses a different origin:
+Google and GitHub sign-in routes respond (`503` without OAuth credentials is expected). It sends
+invalid sign-in values on purpose, so it does not create an account or need a real login.
+`npm run test:api` runs the same check.
+
+To check the hosted API instead, set `API_BASE_URL` (and `FRONTEND_ORIGIN` if your web app uses a
+different origin). If Render is asleep, the first check waits up to 3 minutes for it to wake up:
 
 ```bash
 API_BASE_URL=https://hygiene-tracker.onrender.com \
@@ -162,29 +213,33 @@ FRONTEND_ORIGIN=http://localhost:8081 \
 npm run test:connection
 ```
 
-To verify the real user-login handoff, start the web app, open the login screen, sign in with
-Google and GitHub one at a time, confirm the Explore screen shows the signed-in account, reload
-the page to verify the session persists, then use **Sign out** and verify the login screen returns.
+### Sign-in check (team only)
+
+Team members with local OAuth credentials ([step 4](#4-sign-in-optional-for-a-local-run)) can check the full
+sign-in flow: start the web app, open the login screen, sign in with Google and GitHub one at a
+time, confirm the Explore screen shows the signed-in account, reload the page to check the session
+persists, then use **Sign out** and check the login screen returns.
 
 ### CI
 
-Every pull request runs the API tests and builds the Docker image in GitHub Actions, and CodeQL
-scans the code. A pull request can't merge until its required checks pass. Dependabot opens
-weekly pull requests for npm and Gradle updates.
+Every pull request runs the API tests, builds the Docker image and runs a gitleaks secret scan in
+GitHub Actions, and CodeQL scans the code. A pull request can't merge until its required checks
+pass. Dependabot opens weekly pull requests for npm and Gradle updates.
 
 ---
 
 ## Configuration
 
 Local values live in `.env` (copied from [`.env.example`](.env.example)). `.env` is ignored by
-Git; never commit it.
+Git; never commit it. For production operations (deploy, roll back, secrets, logs), see the
+[runbook](docs/runbook.md).
 
 | Variable | Used by | Local value |
 |---|---|---|
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | The local database | From `.env.example` |
 | `SPRING_DATASOURCE_URL`, `_USERNAME`, `_PASSWORD` | The API (`compose.yml` sets them to the `db` service) | From `.env.example` |
 | `JWT_SECRET` | Signing the API's tokens; at least 32 characters or the API won't start | Placeholder in `.env.example` |
-| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_IDS` | Sign-in | Empty (sign-in returns 503) |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_IDS`, `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_WEB_CLIENT_SECRET` | Sign-in | Empty (sign-in returns 503) |
 | `CORS_ALLOWED_ORIGINS` | Web origins allowed to call the API (comma-separated) | `http://localhost:8081,https://hygiene-tracker-web.onrender.com` |
 | `PORT` | The port the API listens on | Not set (defaults to `8080`) |
 
@@ -212,6 +267,7 @@ then redeploy or restart the API service so Spring Boot reloads the value.
 | [ERD](docs/erd.md) | Tables, keys, relationships and what happens on delete |
 | [OpenAPI contract](docs/openapi.yaml) | Every endpoint; lint with `npx @redocly/cli lint docs/openapi.yaml` |
 | [Error model](docs/error-model.md) | The Problem Details error shape and status codes |
+| [Runbook](docs/runbook.md) | Deploy, roll back, rotate a secret, find logs, database unreachable |
 | [Threat model](docs/security.md) | Five threats and the tests, config and workflows that address them |
 | [Team agreement](docs/team_agreement.md) | PR deadline, review turnaround, team channel |
 | [Merge captains](docs/captains.md) | Who merges each sprint |
