@@ -1,19 +1,37 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 
-const apiBaseUrl = (process.env.API_BASE_URL || 'https://hygiene-tracker.onrender.com').replace(/\/$/, '');
+// Defaults to the local stack from `docker compose up`. Set API_BASE_URL to check the hosted API.
+const apiBaseUrl = (process.env.API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
+// The hosted API on Render's free tier can take a few minutes to wake up.
+const timeoutMs = apiBaseUrl.includes('localhost') ? 5000 : 180000;
 const browserOrigin = process.env.FRONTEND_ORIGIN || 'http://localhost:8081';
 
 async function request(path, options = {}) {
   try {
     return await fetch(`${apiBaseUrl}${path}`, {
       ...options,
-      signal: options.signal || AbortSignal.timeout(5000),
+      signal: options.signal || AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
     assert.fail(
       `Could not reach ${apiBaseUrl}. Start the Spring Boot API or set API_BASE_URL. ${error.message}`,
     );
+  }
+}
+
+/**
+ * A fake sign-in must be rejected the way docs/openapi.yaml says: 400 when sign-in is configured
+ * (the fake value is rejected), or 503 "not configured" when OAuth credentials aren't set (a normal
+ * local run). Anything else, including a 500, is a bug.
+ */
+async function assertRejectedSignIn(response, provider) {
+  assert.match(response.headers.get('content-type') || '', /application\/problem\+json/);
+  const problem = await response.json();
+  if (response.status === 503) {
+    assert.match(problem.detail, /not configured/, `${provider} returned 503: ${problem.detail}`);
+  } else {
+    assert.equal(response.status, 400, `${provider} returned ${response.status}: ${problem.detail}`);
   }
 }
 
@@ -27,7 +45,7 @@ test('Spring Boot API is reachable without an auth token', async () => {
   assert.equal(body.status, 'UP');
 });
 
-test('Hosted API allows the local frontend origin through CORS', async () => {
+test('API allows the local frontend origin through CORS', async () => {
   const response = await request('/api/auth/google', {
     method: 'OPTIONS',
     headers: {
@@ -41,20 +59,17 @@ test('Hosted API allows the local frontend origin through CORS', async () => {
   assert.equal(response.headers.get('access-control-allow-origin'), browserOrigin);
 });
 
-test('Google OAuth route is reachable from the frontend API base URL', async () => {
+test('Google sign-in rejects a fake ID token with a Problem response', async () => {
   const response = await request('/api/auth/google', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ idToken: 'connection-test-invalid-token' }),
   });
 
-  assert.ok(
-    [400, 401, 403].includes(response.status),
-    `Expected OAuth validation failure, got ${response.status}`,
-  );
+  await assertRejectedSignIn(response, 'Google');
 });
 
-test('GitHub OAuth route is reachable from the frontend API base URL', async () => {
+test('GitHub sign-in rejects a fake code with a Problem response', async () => {
   const response = await request('/api/auth/github', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -65,8 +80,5 @@ test('GitHub OAuth route is reachable from the frontend API base URL', async () 
     }),
   });
 
-  assert.ok(
-    [400, 401, 403, 500].includes(response.status),
-    `Expected GitHub OAuth validation failure, got ${response.status}`,
-  );
+  await assertRejectedSignIn(response, 'GitHub');
 });
