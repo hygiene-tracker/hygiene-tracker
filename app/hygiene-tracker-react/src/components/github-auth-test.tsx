@@ -1,21 +1,17 @@
 import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
+import { useAuthRequest } from 'expo-auth-session';
 import { useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
-import { exchangeGithubCode } from '@/services/github-auth';
+import { exchangeGithubCode, githubRedirectUri as redirectUri } from '@/services/github-auth';
 import type { AuthResponse } from '@/services/google-auth';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const githubClientId = process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID || 'missing-github-client-id';
-const redirectUri = makeRedirectUri({
-  scheme: 'hygiene-tracker',
-  path: 'auth/github',
-});
 const githubDiscovery = {
   authorizationEndpoint: 'https://github.com/login/oauth/authorize',
 };

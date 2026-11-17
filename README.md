@@ -111,7 +111,8 @@ in the app's `.env` to your computer's LAN address.
 Sign-in needs OAuth credentials. Without them, the sign-in endpoints return `503` and everything
 else works.
 
-- **API** (root `.env`): `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_IDS`.
+- **API** (root `.env`): `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_IDS`,
+  `GOOGLE_WEB_CLIENT_ID`, and `GOOGLE_WEB_CLIENT_SECRET` for the local web code exchange.
 - **App** (`app/hygiene-tracker-react/.env`): the `EXPO_PUBLIC_*` client IDs. These are public;
   client **secrets** go only in the API's environment.
 
@@ -144,6 +145,27 @@ npm run lint
 
 With the API running, `npm run test:api` checks that the app can reach it.
 
+For the full frontend/API wiring check, run:
+
+```bash
+npm run test:connection
+```
+
+This checks the API health endpoint, CORS preflight for `http://localhost:8081`, and that the
+Google and GitHub OAuth routes are reachable. It intentionally sends invalid OAuth values, so it
+does not create an account or require a real provider login. Set `API_BASE_URL` to the hosted API
+and `FRONTEND_ORIGIN` if your local app uses a different origin:
+
+```bash
+API_BASE_URL=https://hygiene-tracker.onrender.com \
+FRONTEND_ORIGIN=http://localhost:8081 \
+npm run test:connection
+```
+
+To verify the real user-login handoff, start the web app, open the login screen, sign in with
+Google and GitHub one at a time, confirm the Explore screen shows the signed-in account, reload
+the page to verify the session persists, then use **Sign out** and verify the login screen returns.
+
 ### CI
 
 Every pull request runs the API tests and builds the Docker image in GitHub Actions, and CodeQL
@@ -163,7 +185,7 @@ Git; never commit it.
 | `SPRING_DATASOURCE_URL`, `_USERNAME`, `_PASSWORD` | The API (`compose.yml` sets them to the `db` service) | From `.env.example` |
 | `JWT_SECRET` | Signing the API's tokens; at least 32 characters or the API won't start | Placeholder in `.env.example` |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_IDS` | Sign-in | Empty (sign-in returns 503) |
-| `CORS_ALLOWED_ORIGINS` | Web origins allowed to call the API (comma-separated) | Not set (defaults to `http://localhost:8081`) |
+| `CORS_ALLOWED_ORIGINS` | Web origins allowed to call the API (comma-separated) | `http://localhost:8081,https://hygiene-tracker-web.onrender.com` |
 | `PORT` | The port the API listens on | Not set (defaults to `8080`) |
 
 ## Deployment
@@ -174,7 +196,10 @@ Git; never commit it.
 | Web app | Render static site | `npx expo export --platform web` from `app/hygiene-tracker-react`, publishing `dist` |
 | Database | Neon (PostgreSQL 18) | Flyway creates and updates the tables when the API starts |
 
-All production values, including secrets, are set only in Render's environment settings.
+All production values, including secrets, are set only in Render's environment settings. Set
+`CORS_ALLOWED_ORIGINS` on the API service to
+`http://localhost:8081,https://hygiene-tracker-web.onrender.com` while testing the local web app;
+then redeploy or restart the API service so Spring Boot reloads the value.
 
 ---
 
@@ -187,8 +212,10 @@ All production values, including secrets, are set only in Render's environment s
 | [ERD](docs/erd.md) | Tables, keys, relationships and what happens on delete |
 | [OpenAPI contract](docs/openapi.yaml) | Every endpoint; lint with `npx @redocly/cli lint docs/openapi.yaml` |
 | [Error model](docs/error-model.md) | The Problem Details error shape and status codes |
+| [Threat model](docs/security.md) | Five threats and the tests, config and workflows that address them |
 | [Team agreement](docs/team_agreement.md) | PR deadline, review turnaround, team channel |
 | [Merge captains](docs/captains.md) | Who merges each sprint |
+| [ADRs](docs/adr/) | Architecture decisions: database, sign-in, deployment |
 
 ---
 

@@ -1,7 +1,8 @@
 package com.hygienetracker.api.controller;
 
 import com.hygienetracker.api.auth.AppTokenService;
-import com.hygienetracker.api.auth.AuthUser;
+import com.hygienetracker.api.auth.AccountLinker;
+import com.hygienetracker.api.auth.ProviderIdentity;
 import com.hygienetracker.api.error.Problem;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -21,6 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@code POST /api/auth/github}: finishes GitHub's Authorization Code + PKCE flow on the server
@@ -31,19 +34,22 @@ import org.springframework.web.client.RestClientResponseException;
 public class GithubAuthController {
 
     private static final String PATH = "/api/auth/github";
+    private static final Logger log = LoggerFactory.getLogger(GithubAuthController.class);
 
     private final RestClient githubClient;
     private final RestClient oauthClient;
     private final String clientId;
     private final String clientSecret;
     private final AppTokenService tokens;
+    private final AccountLinker accounts;
 
     @Autowired
     public GithubAuthController(
             RestClient.Builder restClientBuilder,
             @Value("${github.oauth.client-id:}") String clientId,
             @Value("${github.oauth.client-secret:}") String clientSecret,
-            AppTokenService tokens) {
+            AppTokenService tokens,
+            AccountLinker accounts) {
         this(
                 restClientBuilder.clone()
                         .baseUrl("https://api.github.com")
@@ -57,7 +63,8 @@ public class GithubAuthController {
                         .build(),
                 clientId,
                 clientSecret,
-                tokens);
+                tokens,
+                accounts);
     }
 
     GithubAuthController(
@@ -65,12 +72,14 @@ public class GithubAuthController {
             RestClient oauthClient,
             String clientId,
             String clientSecret,
-            AppTokenService tokens) {
+            AppTokenService tokens,
+            AccountLinker accounts) {
         this.githubClient = githubClient;
         this.oauthClient = oauthClient;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.tokens = tokens;
+        this.accounts = accounts;
     }
 
     /**
@@ -99,12 +108,19 @@ public class GithubAuthController {
                 return Problem.response(HttpStatus.BAD_REQUEST, "GitHub account email is not verified", PATH);
             }
 
-            // TODO: replace with the stored user from find-or-create once users are saved.
-            return ResponseEntity.ok(tokens.signIn(AuthUser.newUser(user.id(), user.email())));
+            ProviderIdentity identity = new ProviderIdentity(
+                    "GITHUB", String.valueOf(user.id()), user.email(), true);
+            return ResponseEntity.ok(tokens.signIn(accounts.findOrCreate(identity)));
+        } catch (AccountLinker.UnverifiedEmailException exception) {
+            return Problem.response(HttpStatus.BAD_REQUEST, exception.getMessage(), PATH);
+        } catch (AccountLinker.EmailConflictException exception) {
+            return Problem.response(HttpStatus.CONFLICT, exception.getMessage(), PATH);
         } catch (RestClientResponseException exception) {
+            log.warn("GitHub OAuth returned HTTP {} from the upstream service", exception.getStatusCode());
             return Problem.response(
                     HttpStatus.BAD_REQUEST, "GitHub authorization code is invalid or expired", PATH);
         } catch (RestClientException exception) {
+            log.error("GitHub OAuth request failed before receiving a usable response", exception);
             return Problem.response(HttpStatus.SERVICE_UNAVAILABLE, "Unable to reach GitHub right now", PATH);
         }
     }
@@ -125,11 +141,11 @@ public class GithubAuthController {
     }
 
     private GithubUser fetchGithubUser(String accessToken) {
-        GithubUser profile = githubClient.get()
+        GithubProfile profile = githubClient.get()
                 .uri("/user")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                 .retrieve()
-                .body(GithubUser.class);
+                .body(GithubProfile.class);
         if (profile == null || profile.id() == null) {
             return null;
         }
@@ -169,7 +185,14 @@ public class GithubAuthController {
             @NotBlank @Size(max = 256) String codeVerifier,
             @NotBlank @Size(max = 512) String redirectUri) {}
 
-    /** The fields used from GitHub's {@code /user}, plus the email chosen from {@code /user/emails}. */
+    /** The fields returned by GitHub's {@code /user} endpoint. */
+    public record GithubProfile(
+            Long id,
+            String login,
+            String name,
+            String avatar_url) {}
+
+    /** The app's normalized authenticated user. */
     public record GithubUser(
             Long id,
             String login,

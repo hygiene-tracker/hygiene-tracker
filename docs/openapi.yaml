@@ -37,7 +37,7 @@ tags:
     description: Moderation, admin role only (PRD-7)
 
 servers:
-  - url: http://localhost:8080
+  - url: https://hygiene-tracker.onrender.com
     description: Local (docker compose up). The production URL is added at deploy.
 
 security:
