@@ -35,7 +35,7 @@ or Google. Admins moderate the leaderboard.
 ## Live URLs
 
 Render's free tier puts the API to sleep after 15 idle minutes, so the first request can take
-about a minute.
+a few minutes.
 
 | What | URL |
 |---|---|
@@ -141,9 +141,11 @@ phone connected over USB, from `app/hygiene-tracker-react`:
 npx expo run:android
 ```
 
-The first build takes several minutes; after that, `npx expo start` and press `a`. The Android
-emulator reaches the API at `10.0.2.2:8080`; for a physical phone, set `EXPO_PUBLIC_API_BASE_URL`
-in the app's `.env` to your computer's LAN address.
+The first build takes several minutes; after that, `npx expo start` and press `a`.
+
+On Android, `localhost` is the device itself, so change `EXPO_PUBLIC_API_BASE_URL` in the app's
+`.env` first: `http://10.0.2.2:8080` for the emulator, or `http://<your computer's LAN IP>:8080`
+for a physical phone.
 
 ### 4. Sign-in (optional for a local run)
 
@@ -198,11 +200,12 @@ npm run test:connection
 ```
 
 This checks the API health endpoint, CORS preflight for `http://localhost:8081`, and that the
-Google and GitHub sign-in routes respond. It sends invalid sign-in values on purpose, so it does
-not create an account or need a real login. `npm run test:api` runs the same check.
+Google and GitHub sign-in routes respond (`503` without OAuth credentials is expected). It sends
+invalid sign-in values on purpose, so it does not create an account or need a real login.
+`npm run test:api` runs the same check.
 
 To check the hosted API instead, set `API_BASE_URL` (and `FRONTEND_ORIGIN` if your web app uses a
-different origin):
+different origin). If Render is asleep, the first check waits up to 3 minutes for it to wake up:
 
 ```bash
 API_BASE_URL=https://hygiene-tracker.onrender.com \
@@ -228,7 +231,8 @@ pass. Dependabot opens weekly pull requests for npm and Gradle updates.
 ## Configuration
 
 Local values live in `.env` (copied from [`.env.example`](.env.example)). `.env` is ignored by
-Git; never commit it.
+Git; never commit it. For production operations (deploy, roll back, secrets, logs), see the
+[runbook](docs/runbook.md).
 
 | Variable | Used by | Local value |
 |---|---|---|
@@ -262,6 +266,7 @@ then redeploy or restart the API service so Spring Boot reloads the value.
 | [ERD](docs/erd.md) | Tables, keys, relationships and what happens on delete |
 | [OpenAPI contract](docs/openapi.yaml) | Every endpoint; lint with `npx @redocly/cli lint docs/openapi.yaml` |
 | [Error model](docs/error-model.md) | The Problem Details error shape and status codes |
+| [Runbook](docs/runbook.md) | Deploy, roll back, rotate a secret, find logs, database unreachable |
 | [Threat model](docs/security.md) | Five threats and the tests, config and workflows that address them |
 | [Team agreement](docs/team_agreement.md) | PR deadline, review turnaround, team channel |
 | [Merge captains](docs/captains.md) | Who merges each sprint |
