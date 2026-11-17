@@ -94,6 +94,13 @@ In Windows **PowerShell**, these commands differ:
 
 ## Run it locally
 
+## 0. Clone the Repo
+
+```bash
+git clone https://github.com/hygiene-tracker/hygiene-tracker.git
+cd hygiene-tracker
+```
+
 ### 1. Start the API and database
 
 From the repository root:
