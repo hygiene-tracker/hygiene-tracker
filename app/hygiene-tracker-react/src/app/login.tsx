@@ -204,7 +204,7 @@ export default function LoginScreen() {
         authResponse = await signInWithGoogle(idToken);
       }
       await signIn(authResponse);
-      router.replace('/explore');
+      router.replace('/create-profile' as never);
     } catch (error: unknown) {
       setAuthError(error instanceof Error ? error.message : 'Google sign-in failed.');
     } finally {
@@ -234,7 +234,7 @@ export default function LoginScreen() {
 
       const authResponse = await exchangeGithubCode(code, githubRequest.codeVerifier, githubRedirectUri);
       await signIn(authResponse);
-      router.replace('/explore');
+      router.replace('/create-profile' as never);
     } catch (error: unknown) {
       console.error('[GitHub OAuth] Sign-in failed', error);
       setAuthError(error instanceof Error ? error.message : 'GitHub sign-in failed.');
@@ -298,6 +298,7 @@ export default function LoginScreen() {
 
               <Animated.View style={githubEntranceStyle}>
                 <Pressable
+                  testID="github-sign-in"
                   accessibilityRole="button"
                   disabled={!githubConfigured || !githubRequest || loadingProvider !== null}
                   onPress={() => void handleGithubSignIn()}

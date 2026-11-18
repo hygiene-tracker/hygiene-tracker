@@ -41,8 +41,8 @@ API_BASE_URL=https://hygiene-tracker.onrender.com npm run test:api
 
 ## Google web authorization-code handoff
 
-Copy `.env.example` to `.env` and set the Google Web client ID for the local web app. The web
-login uses Authorization Code + PKCE and posts `{code, codeVerifier, redirectUri}` to
+The Expo scripts load the repository-root `.env`; keep the app's public Expo variables there
+instead of creating a second app-local `.env`. The web login uses Authorization Code + PKCE and posts `{code, codeVerifier, redirectUri}` to
 `POST /api/auth/google`; Spring exchanges the code using the web client secret. Native builds
 may continue using the ID-token path.
 
@@ -53,20 +53,20 @@ cd api
 GOOGLE_CLIENT_IDS="your-web-client-id, your-android-client-id, your-ios-client-id" sh ./gradlew bootRun
 ```
 
-Restart Expo after changing `.env`. `EXPO_PUBLIC_API_BASE_URL` defaults to the hosted API. Google Android/iOS OAuth clients must also match the app's package/bundle identifiers and signing configuration.
+Restart Expo after changing the root `.env`. `EXPO_PUBLIC_API_BASE_URL` defaults to the hosted API. Google Android/iOS OAuth clients must also match the app's package/bundle identifiers and signing configuration.
 
 ## GitHub sign-in
 
 The app signs in with GitHub using Authorization Code + PKCE (`expo-auth-session`), then sends `{code, codeVerifier, redirectUri}` to `POST /api/auth/github`. The API exchanges the code with GitHub (the client secret stays on the API), checks the account's primary verified email, and returns the app's JWT.
 
 1. In the GitHub OAuth App, register the app's redirect URI as a callback URL (`hygiene-tracker://auth` for the development build).
-2. Set `EXPO_PUBLIC_GITHUB_CLIENT_ID` in the app's `.env` (see `.env.example`). Only the client ID goes here; never the secret.
+2. Set `EXPO_PUBLIC_GITHUB_CLIENT_ID` in the root `.env` (see the root `.env.example`). Only the client ID goes here; never the secret.
 3. Start the API with `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` and `JWT_SECRET` set in its environment (see `api/.env.example`).
 
 For web sign-in, set `EXPO_PUBLIC_GITHUB_REDIRECT_URI` to the exact callback registered in GitHub,
 such as `http://localhost:8081/auth` for local Expo web or
 `https://hygiene-tracker-web.onrender.com/auth` for the deployed site. Restart Expo after
-changing the app environment.
+changing the root environment.
 
 The **Continue with GitHub** button on the Explore screen needs an Android or iOS development
 build for native sign-in: Expo Go does not register the app's custom URL scheme. Web sign-in uses

@@ -23,7 +23,6 @@ export default function TabTwoScreen() {
   const { user, signOut } = useAuth();
   const [connectionMessage, setConnectionMessage] = useState('Not tested yet');
   const [checkingConnection, setCheckingConnection] = useState(false);
-  const emailPrefix = user?.email.slice(0, 3) ?? '---';
   const insets = {
     ...safeAreaInsets,
     bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
@@ -76,7 +75,7 @@ export default function TabTwoScreen() {
       <ThemedView style={styles.container}>
         <ThemedView style={styles.titleContainer}>
           <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText type="small">Email prefix: {emailPrefix}</ThemedText>
+          <ThemedText type="small">Nickname: {user?.displayName ?? 'Not set'}</ThemedText>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Sign out"

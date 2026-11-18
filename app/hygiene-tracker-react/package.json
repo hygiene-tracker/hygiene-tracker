@@ -43,11 +43,11 @@
     "glob": "14.0.2"
   },
   "scripts": {
-    "start": "expo start",
+    "start": "node ./scripts/with-root-env.cjs start",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
-    "web": "expo start --web",
+    "android": "node ./scripts/with-root-env.cjs run:android",
+    "ios": "node ./scripts/with-root-env.cjs run:ios",
+    "web": "node ./scripts/with-root-env.cjs start --web",
     "lint": "expo lint",
     "test:security": "npm audit --audit-level=moderate",
     "test:api": "node --test tests/api-connectivity.test.cjs",

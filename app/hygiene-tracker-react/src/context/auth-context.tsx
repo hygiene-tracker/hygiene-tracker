@@ -13,6 +13,7 @@ type AuthContextValue = {
   token: string | null;
   isLoading: boolean;
   signIn: (response: AuthResponse) => Promise<void>;
+  updateUser: (user: AuthUser) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -44,6 +45,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
       token: auth?.token ?? null,
       isLoading,
       signIn: async (response) => {
+        await saveAuth(response);
+        setAuth(response);
+      },
+      updateUser: async (user) => {
+        if (!auth) return;
+        const response = { ...auth, user };
         await saveAuth(response);
         setAuth(response);
       },
