@@ -1,6 +1,5 @@
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,11 +15,11 @@ import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/context/auth-context';
 import { apiFetch } from '@/services/api-client';
+import { AppShell } from '@/components/app-shell';
 
 export default function TabTwoScreen() {
-  const router = useRouter();
   const safeAreaInsets = useSafeAreaInsets();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const [connectionMessage, setConnectionMessage] = useState('Not tested yet');
   const [checkingConnection, setCheckingConnection] = useState(false);
   const insets = {
@@ -28,11 +27,6 @@ export default function TabTwoScreen() {
     bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
   };
   const theme = useTheme();
-
-  const handleSignOut = async () => {
-    await signOut();
-    router.replace('/login');
-  };
 
   const handleConnectionTest = async () => {
     setCheckingConnection(true);
@@ -68,21 +62,15 @@ export default function TabTwoScreen() {
   });
 
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
+    <AppShell>
+      <ScrollView
+        style={[styles.scrollView, { backgroundColor: theme.background }]}
+        contentInset={insets}
+        contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
+        <ThemedView style={styles.container}>
         <ThemedView style={styles.titleContainer}>
           <ThemedText type="subtitle">Explore</ThemedText>
           <ThemedText type="small">Nickname: {user?.displayName ?? 'Not set'}</ThemedText>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Sign out"
-            onPress={() => void handleSignOut()}
-            style={({ pressed }) => [styles.logoutButton, pressed && styles.pressed]}>
-            <ThemedText style={styles.logoutText}>Sign out</ThemedText>
-          </Pressable>
           <ThemedView type="backgroundElement" style={styles.connectionCheck}>
             <ThemedText type="smallBold">Connection check</ThemedText>
             <ThemedText type="small">Verifies React, the API, and your authenticated session.</ThemedText>
@@ -191,9 +179,10 @@ export default function TabTwoScreen() {
             </ThemedText>
           </Collapsible>
         </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
+          {Platform.OS === 'web' && <WebBadge />}
+        </ThemedView>
+      </ScrollView>
+    </AppShell>
   );
 }
 
