@@ -15,6 +15,7 @@ import java.util.Optional;
 import com.hygienetracker.api.auth.TestTokens;
 import com.hygienetracker.api.entity.User;
 import com.hygienetracker.api.repository.UserRepository;
+import com.hygienetracker.api.service.StatsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
@@ -28,7 +29,7 @@ class MeControllerTest {
         when(users.findByEmail("student@example.com")).thenReturn(Optional.of(user));
         when(users.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        MockMvc mockMvc = standaloneSetup(new MeController(users)).build();
+        MockMvc mockMvc = standaloneSetup(new MeController(users, mock(StatsService.class))).build();
 
         mockMvc.perform(patch("/api/me")
                         .contentType("application/json")
@@ -47,7 +48,7 @@ class MeControllerTest {
         UserRepository users = mock(UserRepository.class);
         when(users.findByEmail("student@example.com")).thenReturn(Optional.empty());
 
-        MockMvc mockMvc = standaloneSetup(new MeController(users)).build();
+        MockMvc mockMvc = standaloneSetup(new MeController(users, mock(StatsService.class))).build();
 
         mockMvc.perform(patch("/api/me")
                         .contentType("application/json")
@@ -59,7 +60,7 @@ class MeControllerTest {
     @Test
     void rejectsBlankDisplayName() throws Exception {
         UserRepository users = mock(UserRepository.class);
-        MockMvc mockMvc = standaloneSetup(new MeController(users)).build();
+        MockMvc mockMvc = standaloneSetup(new MeController(users, mock(StatsService.class))).build();
 
         mockMvc.perform(patch("/api/me")
                         .contentType("application/json")

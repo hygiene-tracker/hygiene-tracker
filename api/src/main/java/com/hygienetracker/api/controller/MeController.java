@@ -7,19 +7,23 @@ import com.hygienetracker.api.auth.AuthUser;
 import com.hygienetracker.api.entity.User;
 import com.hygienetracker.api.error.Problem;
 import com.hygienetracker.api.repository.UserRepository;
+import com.hygienetracker.api.service.Stats;
+import com.hygienetracker.api.service.StatsService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Endpoints for the currently authenticated user's profile. */
+/** Endpoints about the currently authenticated user. */
 @RestController
 @RequestMapping("/api/me")
 public class MeController {
@@ -27,9 +31,11 @@ public class MeController {
     private static final String PATH = "/api/me";
 
     private final UserRepository users;
+    private final StatsService statsService;
 
-    public MeController(UserRepository users) {
+    public MeController(UserRepository users, StatsService statsService) {
         this.users = users;
+        this.statsService = statsService;
     }
 
     /** Updates the signed-in user's display name using the email in the verified app JWT. */
@@ -59,6 +65,12 @@ public class MeController {
         user.setDisplayName(displayName);
         users.save(user);
         return ResponseEntity.ok(AuthUser.from(user));
+    }
+
+    /** Returns the signed-in user's streak, score, and missed days. */
+    @GetMapping("/stats")
+    public Stats myStats(@AuthenticationPrincipal Jwt jwt) {
+        return statsService.statsFor(Long.parseLong(jwt.getSubject()));
     }
 
     private static String authenticatedEmail(Authentication authentication) {

@@ -216,4 +216,28 @@ class ScoreCalculatorTest {
     void pointsForDay(int showers, int expected) {
         assertThat(ScoreCalculator.pointsForDay(showers)).isEqualTo(expected);
     }
+
+    @Nested
+    class PointsLostSinceLastShower {
+
+        @ParameterizedTest(name = "{0} days since the last shower loses {1} points")
+        @CsvSource({"0, 0", "1, 0", "2, 2", "3, 6", "4, 12", "31, 930"})
+        void sumsThePenaltyForEachMissedDay(int daysSinceLastShower, int expected) {
+            assertThat(ScoreCalculator.pointsLostSinceLastShower(daysSinceLastShower)).isEqualTo(expected);
+        }
+
+        @Test
+        void isZeroForAUserWhoHasNeverShowered() {
+            assertThat(ScoreCalculator.pointsLostSinceLastShower(null)).isZero();
+        }
+
+        @Test
+        void ignoresGapsBeforeTheLastShower() {
+            // 3 days ago and 10 days ago: the older gap costs points in the score but not here.
+            ScoreSummary summary = calculate(showersOn(3, 10));
+
+            assertThat(summary.pointsLost()).isGreaterThan(6);
+            assertThat(ScoreCalculator.pointsLostSinceLastShower(summary.daysSinceLastShower())).isEqualTo(6);
+        }
+    }
 }
