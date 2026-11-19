@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Image } from 'expo-image';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -11,6 +12,7 @@ import {
 
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
+import { AVATAR_OPTIONS } from '@/lib/avatar-catalog';
 import { apiFetch } from '@/services/api-client';
 import type { AuthUser } from '@/services/auth';
 
@@ -27,6 +29,7 @@ const colors = {
 export default function ProfileScreen() {
   const { user, updateUser } = useAuth();
   const [nickname, setNickname] = useState(user?.displayName ?? '');
+  const [avatar, setAvatar] = useState(user?.avatar ?? '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +44,7 @@ export default function ProfileScreen() {
     try {
       const response = await apiFetch('/api/me', {
         method: 'PATCH',
-        body: JSON.stringify({ displayName: trimmedNickname }),
+        body: JSON.stringify({ displayName: trimmedNickname, ...(avatar ? { avatar } : {}) }),
       });
       if (!response.ok) {
         const problem = await response.json().catch(() => null) as { detail?: string } | null;
@@ -84,21 +87,27 @@ export default function ProfileScreen() {
             />
           </View>
 
-          <View style={styles.fieldGroup}>
+          {AVATAR_OPTIONS.length > 0 ? <View style={styles.fieldGroup}>
             <View style={styles.labelRow}>
               <Text style={styles.label}>Avatar</Text>
-              <Text style={styles.comingSoon}>COMING SOON</Text>
+              <Text style={styles.comingSoon}>CHOOSE ONE</Text>
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Upload an avatar, coming soon"
-              disabled
-              style={styles.avatarButton}>
-              <Text style={styles.avatarIcon}>＋</Text>
-              <Text style={styles.avatarButtonText}>Upload an image</Text>
-            </Pressable>
-            <Text style={styles.helperText}>Avatar uploads will be available in a future update.</Text>
-          </View>
+            <View style={styles.avatarOptions}>
+              {AVATAR_OPTIONS.map((option) => (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Choose avatar ${option.key}`}
+                  key={option.key}
+                  onPress={() => {
+                    setAvatar(option.key);
+                    setSaved(false);
+                  }}
+                  style={[styles.avatarOption, avatar === option.key && styles.selectedAvatarOption]}>
+                  <Image source={option.source} style={styles.avatarOptionImage} />
+                </Pressable>
+              ))}
+            </View>
+          </View> : null}
 
           <Pressable
             accessibilityRole="button"
@@ -131,6 +140,10 @@ const styles = StyleSheet.create({
   avatarIcon: { color: colors.muted, fontSize: 24, fontWeight: '300' },
   avatarButtonText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
   helperText: { color: colors.muted, fontSize: 11, marginTop: 8 },
+  avatarOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  avatarOption: { width: 58, height: 58, borderRadius: 29, borderWidth: 2, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
+  selectedAvatarOption: { borderColor: colors.blue, borderWidth: 3 },
+  avatarOptionImage: { width: 50, height: 50, borderRadius: 25 },
   saveButton: { height: 50, borderRadius: 25, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
   saveButtonText: { color: colors.surface, fontSize: 15, fontWeight: '800' },
   disabledButton: { opacity: 0.55 },

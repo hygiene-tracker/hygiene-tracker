@@ -1,9 +1,11 @@
 import { usePathname, useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import { PropsWithChildren, ReactNode, useEffect, useState } from 'react';
 import { Animated, Pressable, PressableProps, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/context/auth-context';
+import { avatarSource } from '@/lib/avatar-catalog';
 import { Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
@@ -102,9 +104,13 @@ export function AppShell({ children }: PropsWithChildren) {
             onPress={() => router.replace('/profile')}
             style={[styles.profileBlock, pathname === '/profile' && styles.selectedProfile]}>
             <View style={styles.avatar}>
-              <ThemedText style={styles.avatarText}>
-                {(user?.displayName?.trim() || 'U').slice(0, 1).toUpperCase()}
-              </ThemedText>
+              {avatarSource(user?.avatar) ? (
+                <Image source={avatarSource(user?.avatar)!} style={styles.avatarImage} />
+              ) : (
+                <ThemedText style={styles.avatarText}>
+                  {(user?.displayName?.trim() || 'U').slice(0, 1).toUpperCase()}
+                </ThemedText>
+              )}
             </View>
             <ThemedText type="smallBold" numberOfLines={2} style={styles.displayName}>
               {user?.displayName?.trim() || 'Your profile'}
@@ -159,6 +165,7 @@ const styles = StyleSheet.create({
   selectedProfile: { borderWidth: 2, borderColor: '#2563EB' },
   avatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: '#DCEAFF' },
   avatarText: { color: '#2563EB', fontSize: 20, fontWeight: '800' },
+  avatarImage: { width: 52, height: 52, borderRadius: 26 },
   displayName: { textAlign: 'center', color: '#102A43' },
   navigation: { gap: Spacing.one, alignSelf: 'stretch' },
   navigationItem: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.two + 2, borderRadius: 12 },

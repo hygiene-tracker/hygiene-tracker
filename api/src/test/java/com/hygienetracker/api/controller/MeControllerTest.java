@@ -70,6 +70,25 @@ class MeControllerTest {
                 .andExpect(jsonPath("$.detail").value("Display name is required"));
     }
 
+    @Test
+    void savesSelectedAvatarKeyWithoutNeedingAnImageFile() throws Exception {
+        User user = user("student@example.com");
+        UserRepository users = mock(UserRepository.class);
+        when(users.findByEmail("student@example.com")).thenReturn(Optional.of(user));
+        when(users.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        MockMvc mockMvc = standaloneSetup(new MeController(users, mock(StatsService.class))).build();
+
+        mockMvc.perform(patch("/api/me")
+                        .contentType("application/json")
+                        .content("{\"displayName\":\"Fresh Start\",\"avatar\":\"blue.png\"}")
+                        .principal(new JwtAuthenticationToken(jwt("student@example.com"))))
+                .andExpect(status().isOk());
+
+        verify(user).setAvatar("blue.png");
+        verify(users).save(user);
+    }
+
     private static User user(String email) {
         User user = mock(User.class);
         when(user.getId()).thenReturn(7L);

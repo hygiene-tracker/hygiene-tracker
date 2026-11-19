@@ -63,6 +63,15 @@ public class MeController {
         }
 
         user.setDisplayName(displayName);
+
+        if (request.avatar() != null) {
+            String avatar = request.avatar().trim();
+            if (avatar.isEmpty() || avatar.length() > 64 || !avatar.matches("[A-Za-z0-9._-]+")) {
+                return Problem.response(HttpStatus.BAD_REQUEST, "Avatar must be a valid avatar key", PATH);
+            }
+            user.setAvatar(avatar);
+        }
+
         users.save(user);
         return ResponseEntity.ok(AuthUser.from(user));
     }
@@ -82,5 +91,6 @@ public class MeController {
     }
 
     public record UpdateProfileRequest(
-            @JsonAlias("nickname") @Size(max = 32) String displayName) {}
+            @JsonAlias("nickname") @Size(max = 32) String displayName,
+            @Size(max = 64) String avatar) {}
 }
