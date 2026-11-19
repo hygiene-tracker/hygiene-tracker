@@ -20,7 +20,7 @@ or Google. Admins moderate the leaderboard.
   - [5. Stop the stack](#5-stop-the-stack)
 - [Run the tests](#run-the-tests)
   - [API tests](#api-tests)
-  - [App lint](#app-lint)
+  - [App lint and unit tests](#app-lint-and-unit-tests)
   - [API connection check](#api-connection-check)
   - [Sign-in check (team only)](#sign-in-check-team-only)
   - [CI](#ci)
@@ -52,7 +52,7 @@ a few minutes.
 | Database | PostgreSQL 18 (Docker locally, Neon in production) |
 | App | React Native with Expo, TypeScript (web and Android) |
 | Sign-in | GitHub and Google (Authorization Code + PKCE); the API issues its own JWT |
-| Tests | JUnit 5, Testcontainers (real PostgreSQL), JaCoCo (70% on the service layer) |
+| Tests | JUnit 5, Testcontainers (real PostgreSQL), JaCoCo (70% on the service layer); Jest for the app |
 | CI | GitHub Actions on every pull request |
 
 ## Repository layout
@@ -191,12 +191,17 @@ This compiles, runs every test, writes the coverage report to
 `api/build/reports/jacoco/test/html/index.html`, and fails if the service layer is below 70%
 coverage.
 
-### App lint
+### App lint and unit tests
 
 ```bash
 cd app/hygiene-tracker-react
 npm run lint
+npm run test:coverage
 ```
+
+`npm run test:coverage` runs the Jest unit tests (`src/**/*.test.ts`) and fails if the app's
+validation code (`src/validation/`) is below 80% coverage. `npm test` runs them without the
+coverage report.
 
 ### API connection check
 
@@ -229,9 +234,10 @@ persists, then use **Sign out** and check the login screen returns.
 
 ### CI
 
-Every pull request runs the API tests, builds the Docker image and runs a gitleaks secret scan in
-GitHub Actions, and CodeQL scans the code. A pull request can't merge until its required checks
-pass. Dependabot opens weekly pull requests for npm and Gradle updates.
+Every pull request runs the API tests, lints and tests the app (Jest), builds the Docker image
+and runs a gitleaks secret scan in GitHub Actions, and CodeQL scans the code. A pull request
+can't merge until its required checks pass. Dependabot opens weekly pull requests for npm and
+Gradle updates.
 
 ---
 
