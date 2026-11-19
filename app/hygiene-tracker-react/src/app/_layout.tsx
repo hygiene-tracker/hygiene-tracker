@@ -22,7 +22,7 @@ function AuthGate() {
 
     const isPublicRoute = pathname === '/login' || pathname === '/auth';
     if (!user && !isPublicRoute) router.replace('/login');
-    if (user && isPublicRoute) router.replace('/explore');
+    if (user && isPublicRoute) router.replace('/');
   }, [isLoading, pathname, router, user]);
 
   return <Stack screenOptions={{ headerShown: false }} />;
