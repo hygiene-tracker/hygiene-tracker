@@ -95,7 +95,12 @@ export function AppShell({ children }: PropsWithChildren) {
               );
             })}
           </View>
-          <View style={styles.profileBlock}>
+          <SidebarButton
+            accessibilityRole="button"
+            accessibilityLabel="Open profile settings"
+            accessibilityState={{ selected: pathname === '/profile' }}
+            onPress={() => router.replace('/profile')}
+            style={[styles.profileBlock, pathname === '/profile' && styles.selectedProfile]}>
             <View style={styles.avatar}>
               <ThemedText style={styles.avatarText}>
                 {(user?.displayName?.trim() || 'U').slice(0, 1).toUpperCase()}
@@ -104,7 +109,7 @@ export function AppShell({ children }: PropsWithChildren) {
             <ThemedText type="smallBold" numberOfLines={2} style={styles.displayName}>
               {user?.displayName?.trim() || 'Your profile'}
             </ThemedText>
-          </View>
+          </SidebarButton>
 
           <View style={styles.navigation}>
             <SidebarButton
@@ -151,6 +156,7 @@ const styles = StyleSheet.create({
   bubbleLayer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, overflow: 'hidden' },
   bubble: { position: 'absolute', top: 0, backgroundColor: '#A4C7F5', shadowColor: '#FFFFFF', shadowOpacity: 0.55, shadowRadius: 4, elevation: 2 },
   profileBlock: { alignItems: 'center', gap: Spacing.two, padding: Spacing.three, borderRadius: 18, backgroundColor: '#EAF2FF' },
+  selectedProfile: { borderWidth: 2, borderColor: '#2563EB' },
   avatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: '#DCEAFF' },
   avatarText: { color: '#2563EB', fontSize: 20, fontWeight: '800' },
   displayName: { textAlign: 'center', color: '#102A43' },
