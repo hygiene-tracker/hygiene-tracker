@@ -74,6 +74,25 @@ public class ScoreCalculator {
         return showers == 1 ? FIRST_SHOWER_POINTS : 0;
     }
 
+    /**
+     * Points lost to the missed days since the last shower, the number on the stats screen
+     * (PRD-5: last shower 3 days ago means 2 missed days, so 2 + 4 = 6). Today is not a missed day,
+     * so {@code d} days since the last shower is {@code d - 1} missed days costing
+     * 2 + 4 + ... + 2(d - 1) = d(d - 1) points.
+     *
+     * <p>Unlike {@link ScoreSummary#pointsLost()}, this ignores older gaps and the 30-day window.
+     *
+     * @param daysSinceLastShower whole days since the last shower, or {@code null} if never showered
+     * @return the points lost since the last shower; 0 if the user has never showered
+     */
+    public static int pointsLostSinceLastShower(Integer daysSinceLastShower) {
+        if (daysSinceLastShower == null || daysSinceLastShower < 2) {
+            return 0;
+        }
+        int missedDays = daysSinceLastShower - 1;
+        return MISSED_DAY_PENALTY_STEP * missedDays * (missedDays + 1) / 2;
+    }
+
     private static int pointsEarned(Map<LocalDate, Integer> showersInWindow) {
         return showersInWindow.values().stream().mapToInt(ScoreCalculator::pointsForDay).sum();
     }
